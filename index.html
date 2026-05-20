@@ -73,6 +73,7 @@
     let kid = { x: 1, y: 6 };
     let dino = { x: 6, y: 1 };
     let jumpOn = false;
+    let jumpCellKey = null;
 
     const levels = [
       { kid: {x:1,y:6}, dino: {x:4,y:6} },
@@ -130,6 +131,12 @@
       mode2Paths = { correct:c, options:[c, option2, option3] };
     }
 
+    function triggerJump(x, y){
+      jumpOn = true;
+      jumpCellKey = key(x,y);
+      setTimeout(() => { jumpOn = false; jumpCellKey = null; draw(); }, 900);
+    }
+
     function draw(){
       mapEl.innerHTML = '';
       levelText.textContent = `Level ${level}`;
@@ -147,6 +154,7 @@
           cell.dataset.x = x; cell.dataset.y = y;
 
           if (mode === 1 && placedArrows.has(key(x,y))) cell.textContent = placedArrows.get(key(x,y));
+          if (mode === 1 && requiredPath.some(step => step.x===x && step.y===y)) cell.classList.add('path-b');
           if (mode === 2) {
             if (optSets[0].has(key(x,y))) cell.classList.add('path-a');
             if (optSets[1].has(key(x,y))) cell.classList.add('path-b');
@@ -161,6 +169,10 @@
               e.preventDefault(); cell.classList.remove('drop-target');
               const index = Number(e.dataTransfer.getData('text/plain'));
               if (!Number.isNaN(index) && arrowBank[index] && !placedArrows.has(key(x,y))) {
+                const stepIndex = requiredPath.findIndex(step => step.x===x && step.y===y);
+                if (stepIndex === -1) { hintEl.textContent = 'Try again. Place arrows only on highlighted path.'; return; }
+                const expectedArrow = requiredPath[stepIndex].a;
+                if (arrowBank[index] !== expectedArrow) { hintEl.textContent = 'Try again. Wrong arrow direction for this square.'; return; }
                 placedArrows.set(key(x,y), arrowBank[index]);
                 arrowBank.splice(index,1);
                 draw();
@@ -171,7 +183,7 @@
 
           if (x===kid.x && y===kid.y) {
             cell.textContent = '👦';
-            if (jumpOn) cell.classList.add('jump');
+            if (jumpOn && jumpCellKey === key(x,y)) cell.classList.add('jump');
           }
           if (x===dino.x && y===dino.y) cell.textContent = '🦕';
 
@@ -182,7 +194,12 @@
 
     function checkMode1Win(){
       const ok = requiredPath.every(step => placedArrows.get(key(step.x,step.y)) === step.a);
-      if (ok) { jumpOn = true; hintEl.textContent = 'Bravo! 🎉'; nextLevel(); }
+      if (ok) {
+        kid = {...dino};
+        hintEl.textContent = 'Bravo! 🎉';
+        triggerJump(kid.x, kid.y);
+        setTimeout(() => nextLevel(), 1000);
+      }
       else { jumpOn = false; hintEl.textContent = 'Try again.'; }
       draw();
     }
@@ -194,7 +211,7 @@
 
     function selectPath(x, y){
       const chosen = mode2Paths.options.findIndex(set => set.some(p => p.x===x && p.y===y));
-      if (chosen === 0) { jumpOn = true; kid = {...dino}; hintEl.textContent = 'Bravo! 🎉'; }
+      if (chosen === 0) { kid = {...dino}; hintEl.textContent = 'Bravo! 🎉'; triggerJump(kid.x, kid.y); }
       else { jumpOn = false; hintEl.textContent = 'Try again.'; }
       draw();
     }
@@ -205,7 +222,7 @@
       mode2Btn.classList.toggle('active', m===2);
       initLevel();
       generateMode2Paths();
-      hintEl.textContent = m===1 ? 'Drag and drop arrows on map. Use exact number of arrows.' : 'Click one path option. Only one is correct.';
+      hintEl.textContent = m===1 ? 'Drag and drop arrows on highlighted squares. First path point is always the boy.' : 'Click one path option. Only one is correct and starts at boy.';
       draw();
     }
 
@@ -217,7 +234,7 @@
     initLevel();
     generateMode2Paths();
     draw();
-    hintEl.textContent = 'Mode 1: Drag arrows from right panel and drop onto map.';
+    hintEl.textContent = 'Mode 1: Drag arrows on highlighted squares. First point is always boy.';
   </script>
 </body>
 </html>
