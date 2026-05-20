@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino Arrow Quest</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --grid: #d6deea;
+      --kid: #2f80ed;
+      --dino: #27ae60;
+      --arrow: #f39c12;
+      --ok: #2ecc71;
+      --bad: #e74c3c;
+      --text: #243447;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+    .game {
+      width: min(900px, 100%);
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 16px;
+    }
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #ecf1f8;
+    }
+    button.active { background: #d6e7ff; }
+    .map {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      background: var(--grid);
+      padding: 4px;
+      border-radius: 12px;
+      user-select: none;
+    }
+    .cell {
+      aspect-ratio: 1;
+      background: #fff;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: clamp(14px, 2.2vw, 24px);
+      position: relative;
+      overflow: hidden;
+    }
+    .legend {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+    .tag { padding: 6px 8px; border-radius: 8px; font-weight: 700; }
+    .a { background: #fff6df; }
+    .b { background: #e8fff1; }
+    .c { background: #ffeceb; }
+    .path-ok { background: #ecfff4; }
+    .path-bad { background: #ffefef; }
+    .hint { margin-top: 10px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <div class="topbar">
+      <h2>Dino Arrow Quest</h2>
+      <div class="btns">
+        <button id="mode1" class="active">Mode 1: Follow Arrows</button>
+        <button id="mode2">Mode 2: Pick Correct Path</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+
+    <section id="map" class="map" aria-label="game map"></section>
+    <p id="hint" class="hint"></p>
+
+    <div class="legend">
+      <span class="tag a">👦 Kid (sketch style)</span>
+      <span class="tag b">🦕 Dinosaur target</span>
+      <span class="tag a">⬆️⬇️⬅️➡️ Arrow icons</span>
+      <span class="tag b">Green path = correct</span>
+      <span class="tag c">Red path = wrong</span>
+    </div>
+  </main>
+
+  <script>
+    const size = 8;
+    const mapEl = document.getElementById('map');
+    const hintEl = document.getElementById('hint');
+    const mode1Btn = document.getElementById('mode1');
+    const mode2Btn = document.getElementById('mode2');
+    const resetBtn = document.getElementById('reset');
+
+    let mode = 1;
+    let kid = { x: 1, y: 6 };
+    let dino = { x: 6, y: 1 };
+
+    const arrowPath = [
+      { x: 1, y: 6, a: '➡️' },
+      { x: 2, y: 6, a: '➡️' },
+      { x: 3, y: 6, a: '⬆️' },
+      { x: 3, y: 5, a: '⬆️' },
+      { x: 3, y: 4, a: '➡️' },
+      { x: 4, y: 4, a: '➡️' },
+      { x: 5, y: 4, a: '⬆️' },
+      { x: 5, y: 3, a: '⬆️' },
+      { x: 5, y: 2, a: '➡️' },
+      { x: 6, y: 2, a: '⬆️' }
+    ];
+
+    const mode2Paths = {
+      correct: [
+        { x: 1, y: 6 }, { x: 2, y: 6 }, { x: 2, y: 5 }, { x: 3, y: 5 },
+        { x: 4, y: 5 }, { x: 4, y: 4 }, { x: 5, y: 4 }, { x: 5, y: 3 },
+        { x: 6, y: 3 }, { x: 6, y: 2 }, { x: 6, y: 1 }
+      ],
+      wrong: [
+        { x: 1, y: 6 }, { x: 1, y: 5 }, { x: 1, y: 4 }, { x: 2, y: 4 },
+        { x: 3, y: 4 }, { x: 4, y: 4 }, { x: 4, y: 3 }, { x: 4, y: 2 }
+      ]
+    };
+
+    function cellKey(x, y) { return `${x},${y}`; }
+
+    function draw() {
+      mapEl.innerHTML = '';
+
+      const arrowMap = new Map(arrowPath.map(p => [cellKey(p.x, p.y), p.a]));
+      const correctSet = new Set(mode2Paths.correct.map(p => cellKey(p.x, p.y)));
+      const wrongSet = new Set(mode2Paths.wrong.map(p => cellKey(p.x, p.y)));
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const cell = document.createElement('button');
+          cell.className = 'cell';
+          cell.dataset.x = x;
+          cell.dataset.y = y;
+
+          if (mode === 1 && arrowMap.has(cellKey(x, y))) {
+            cell.textContent = arrowMap.get(cellKey(x, y));
+          }
+
+          if (mode === 2) {
+            if (correctSet.has(cellKey(x, y))) cell.classList.add('path-ok');
+            if (wrongSet.has(cellKey(x, y))) cell.classList.add('path-bad');
+          }
+
+          if (x === kid.x && y === kid.y) cell.textContent = '👦';
+          if (x === dino.x && y === dino.y) cell.textContent = '🦕';
+
+          cell.addEventListener('click', () => onCellClick(x, y));
+          mapEl.appendChild(cell);
+        }
+      }
+
+      hintEl.textContent = mode === 1
+        ? 'Mode 1: Click arrow cells to move the kid step by step to the dinosaur.'
+        : 'Mode 2: Choose only green path cells. Red path is trap.';
+    }
+
+    function onCellClick(x, y) {
+      if (mode === 1) {
+        const idx = arrowPath.findIndex(p => p.x === kid.x && p.y === kid.y);
+        if (idx === -1) return;
+        const next = arrowPath[idx + 1];
+        if (!next) return;
+
+        if (x === next.x && y === next.y) {
+          kid = { x, y };
+          if (kid.x === dino.x && kid.y === dino.y) {
+            hintEl.textContent = '🎉 Great! Kid reached dinosaur in Mode 1.';
+          }
+          draw();
+        }
+      } else {
+        const inCorrect = mode2Paths.correct.some(p => p.x === x && p.y === y);
+        const inWrong = mode2Paths.wrong.some(p => p.x === x && p.y === y);
+
+        if (inWrong) {
+          hintEl.textContent = '❌ Wrong way! Try green path.';
+          return;
+        }
+        if (inCorrect) {
+          kid = { x, y };
+          if (kid.x === dino.x && kid.y === dino.y) {
+            hintEl.textContent = '🎉 Correct choice! Kid found dinosaur in Mode 2.';
+          }
+          draw();
+        }
+      }
+    }
+
+    function resetPositions() {
+      kid = { x: 1, y: 6 };
+      dino = { x: 6, y: 1 };
+      draw();
+    }
+
+    mode1Btn.addEventListener('click', () => {
+      mode = 1;
+      mode1Btn.classList.add('active');
+      mode2Btn.classList.remove('active');
+      resetPositions();
+    });
+
+    mode2Btn.addEventListener('click', () => {
+      mode = 2;
+      mode2Btn.classList.add('active');
+      mode1Btn.classList.remove('active');
+      resetPositions();
+    });
+
+    resetBtn.addEventListener('click', resetPositions);
+
+    draw();
+  </script>
+</body>
+</html>
