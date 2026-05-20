@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino Arrow Quest</title>
+  <style>
+    :root { --bg:#f4f7fb; --card:#fff; --grid:#d6deea; --text:#243447; --ok:#39b76f; --bad:#d94a4a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--text); display:flex; justify-content:center; padding:16px; }
+    .game { width:min(980px,100%); background:var(--card); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.08); padding:16px; }
+    .topbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .btns { display:flex; gap:8px; flex-wrap:wrap; }
+    button { border:0; border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:700; background:#ecf1f8; }
+    button.active { background:#d6e7ff; }
+    .layout { display:grid; grid-template-columns: 1fr 220px; gap:12px; }
+    .map { display:grid; grid-template-columns:repeat(8,1fr); gap:4px; background:var(--grid); padding:4px; border-radius:12px; }
+    .cell { aspect-ratio:1; background:#fff; border-radius:8px; display:grid; place-items:center; font-size:clamp(15px,2.3vw,24px); border:2px solid transparent; }
+    .cell.drop-target { border-color:#5a8cff; }
+    .path-a{ background:#39b76f; color:#fff; }
+    .path-b{ background:#f1bf3f; }
+    .path-c{ background:#d94a4a; color:#fff; }
+    .panel { background:#f8fbff; border-radius:12px; padding:10px; }
+    .arrow-bank { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+    .arrow-item { font-size:24px; background:#fff; border-radius:10px; padding:6px; text-align:center; border:2px dashed #ffd28d; cursor:grab; }
+    .counter { font-size:13px; margin-top:6px; }
+    .hint { margin: 10px 0 0; font-size:15px; font-weight:700; }
+    .jump { animation: jump .35s ease-in-out 3; }
+    @keyframes jump { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @media (max-width: 820px){ .layout{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <div class="topbar">
+      <h2>Dino Arrow Quest</h2>
+      <div class="btns">
+        <button id="mode1" class="active">Mode 1: Drag Arrows</button>
+        <button id="mode2">Mode 2: Pick Path</button>
+        <button id="newPath">New Paths</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <section id="map" class="map" aria-label="game map"></section>
+      <aside class="panel" id="sidePanel">
+        <div><strong id="levelText">Level 1</strong></div>
+        <div class="counter" id="distanceText"></div>
+        <div class="counter" id="arrowCountText"></div>
+        <div id="arrowBank" class="arrow-bank"></div>
+      </aside>
+    </div>
+
+    <p id="hint" class="hint"></p>
+  </main>
+
+  <script>
+    const size = 8;
+    const mapEl = document.getElementById('map');
+    const hintEl = document.getElementById('hint');
+    const mode1Btn = document.getElementById('mode1');
+    const mode2Btn = document.getElementById('mode2');
+    const newPathBtn = document.getElementById('newPath');
+    const resetBtn = document.getElementById('reset');
+    const arrowBankEl = document.getElementById('arrowBank');
+    const levelText = document.getElementById('levelText');
+    const distanceText = document.getElementById('distanceText');
+    const arrowCountText = document.getElementById('arrowCountText');
+
+    let mode = 1;
+    let level = 1;
+    let kid = { x: 1, y: 6 };
+    let dino = { x: 6, y: 1 };
+    let jumpOn = false;
+    let jumpCellKey = null;
+
+    const levels = [
+      { kid: {x:1,y:6}, dino: {x:4,y:6} },
+      { kid: {x:1,y:6}, dino: {x:5,y:5} },
+      { kid: {x:0,y:7}, dino: {x:4,y:5} },
+      { kid: {x:0,y:7}, dino: {x:5,y:4} },
+      { kid: {x:0,y:7}, dino: {x:6,y:3} }
+    ];
+
+    let requiredPath = [];
+    let placedArrows = new Map();
+    let arrowBank = [];
+
+    let mode2Paths = { correct: [], options: [] };
+
+    const dirs = [{dx:1,dy:0,a:'➡️'},{dx:-1,dy:0,a:'⬅️'},{dx:0,dy:1,a:'⬇️'},{dx:0,dy:-1,a:'⬆️'}];
+    const key = (x,y)=>`${x},${y}`;
+
+    function manhattan(a,b){ return Math.abs(a.x-b.x)+Math.abs(a.y-b.y); }
+
+    function buildSimplePath(from, to){
+      const p=[]; let x=from.x, y=from.y;
+      while (x!==to.x){ const dx = x<to.x?1:-1; p.push({x,y,a:dx===1?'➡️':'⬅️'}); x+=dx; }
+      while (y!==to.y){ const dy = y<to.y?1:-1; p.push({x,y,a:dy===1?'⬇️':'⬆️'}); y+=dy; }
+      return p;
+    }
+
+    function initLevel(){
+      const setup = levels[level-1];
+      kid = {...setup.kid}; dino = {...setup.dino};
+      requiredPath = buildSimplePath(kid, dino);
+      placedArrows = new Map();
+      arrowBank = requiredPath.map(p => p.a);
+      jumpOn = false;
+    }
+
+    function drawArrowBank(){
+      arrowBankEl.innerHTML = '';
+      arrowBank.forEach((a, i) => {
+        const item = document.createElement('div');
+        item.className = 'arrow-item';
+        item.textContent = a;
+        item.draggable = true;
+        item.dataset.index = i;
+        item.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', i));
+        arrowBankEl.appendChild(item);
+      });
+    }
+
+    function generateMode2Paths(){
+      const c = buildSimplePath(kid, dino).map(p => ({x:p.x,y:p.y}));
+      c.push({x:dino.x,y:dino.y});
+      const option2 = c.map((pt, i) => i < 2 ? pt : {x:Math.min(size-1, pt.x+1), y:pt.y});
+      const option3 = c.map((pt, i) => i < 3 ? pt : {x:pt.x, y:Math.max(0, pt.y-1)});
+      mode2Paths = { correct:c, options:[c, option2, option3] };
+    }
+
+    function triggerJump(x, y){
+      jumpOn = true;
+      jumpCellKey = key(x,y);
+      setTimeout(() => { jumpOn = false; jumpCellKey = null; draw(); }, 900);
+    }
+
+    function draw(){
+      mapEl.innerHTML = '';
+      levelText.textContent = `Level ${level}`;
+      distanceText.textContent = `Boy is ${manhattan(kid,dino)} squares from dino.`;
+      arrowCountText.textContent = mode === 1 ? `Use exactly ${requiredPath.length} arrows.` : 'Pick one of 3 path options.';
+      drawArrowBank();
+
+      const correctSet = new Set(mode2Paths.correct.map(p => key(p.x,p.y)));
+      const optSets = mode2Paths.options.map(path => new Set(path.map(p => key(p.x,p.y))));
+
+      for (let y=0; y<size; y++) {
+        for (let x=0; x<size; x++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.x = x; cell.dataset.y = y;
+
+          if (mode === 1 && placedArrows.has(key(x,y))) cell.textContent = placedArrows.get(key(x,y));
+          if (mode === 1 && requiredPath.some(step => step.x===x && step.y===y)) cell.classList.add('path-b');
+          if (mode === 2) {
+            if (optSets[0].has(key(x,y))) cell.classList.add('path-a');
+            if (optSets[1].has(key(x,y))) cell.classList.add('path-b');
+            if (optSets[2].has(key(x,y))) cell.classList.add('path-c');
+            cell.addEventListener('click', ()=>selectPath(x,y));
+          }
+
+          if (mode === 1) {
+            cell.addEventListener('dragover', (e)=>{ e.preventDefault(); cell.classList.add('drop-target'); });
+            cell.addEventListener('dragleave', ()=>cell.classList.remove('drop-target'));
+            cell.addEventListener('drop', (e)=>{
+              e.preventDefault(); cell.classList.remove('drop-target');
+              const index = Number(e.dataTransfer.getData('text/plain'));
+              if (!Number.isNaN(index) && arrowBank[index] && !placedArrows.has(key(x,y))) {
+                const stepIndex = requiredPath.findIndex(step => step.x===x && step.y===y);
+                if (stepIndex === -1) { hintEl.textContent = 'Try again. Place arrows only on highlighted path.'; return; }
+                const expectedArrow = requiredPath[stepIndex].a;
+                if (arrowBank[index] !== expectedArrow) { hintEl.textContent = 'Try again. Wrong arrow direction for this square.'; return; }
+                placedArrows.set(key(x,y), arrowBank[index]);
+                arrowBank.splice(index,1);
+                draw();
+                if (arrowBank.length === 0) checkMode1Win();
+              }
+            });
+          }
+
+          if (x===kid.x && y===kid.y) {
+            cell.textContent = '👦';
+            if (jumpOn && jumpCellKey === key(x,y)) cell.classList.add('jump');
+          }
+          if (x===dino.x && y===dino.y) cell.textContent = '🦕';
+
+          mapEl.appendChild(cell);
+        }
+      }
+    }
+
+    function checkMode1Win(){
+      const ok = requiredPath.every(step => placedArrows.get(key(step.x,step.y)) === step.a);
+      if (ok) {
+        kid = {...dino};
+        hintEl.textContent = 'Bravo! 🎉';
+        triggerJump(kid.x, kid.y);
+        setTimeout(() => nextLevel(), 1000);
+      }
+      else { jumpOn = false; hintEl.textContent = 'Try again.'; }
+      draw();
+    }
+
+    function nextLevel(){
+      if (level < 5) level += 1;
+      initLevel();
+    }
+
+    function selectPath(x, y){
+      const chosen = mode2Paths.options.findIndex(set => set.some(p => p.x===x && p.y===y));
+      if (chosen === 0) { kid = {...dino}; hintEl.textContent = 'Bravo! 🎉'; triggerJump(kid.x, kid.y); }
+      else { jumpOn = false; hintEl.textContent = 'Try again.'; }
+      draw();
+    }
+
+    function switchMode(m){
+      mode = m;
+      mode1Btn.classList.toggle('active', m===1);
+      mode2Btn.classList.toggle('active', m===2);
+      initLevel();
+      generateMode2Paths();
+      hintEl.textContent = m===1 ? 'Drag and drop arrows on highlighted squares. First path point is always the boy.' : 'Click one path option. Only one is correct and starts at boy.';
+      draw();
+    }
+
+    mode1Btn.addEventListener('click', ()=>switchMode(1));
+    mode2Btn.addEventListener('click', ()=>switchMode(2));
+    resetBtn.addEventListener('click', ()=>switchMode(mode));
+    newPathBtn.addEventListener('click', ()=>{ generateMode2Paths(); hintEl.textContent='New paths generated.'; draw(); });
+
+    initLevel();
+    generateMode2Paths();
+    draw();
+    hintEl.textContent = 'Mode 1: Drag arrows on highlighted squares. First point is always boy.';
+  </script>
+</body>
+</html>
