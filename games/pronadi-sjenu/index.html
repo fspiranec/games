@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronađi sjenu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#ffe8b8,#ffc9a8);color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#prog{position:fixed;top:calc(env(safe-area-inset-top,0px) + 70px);left:0;right:0;text-align:center;font-size:30px;letter-spacing:6px}
+#hint{position:fixed;top:calc(env(safe-area-inset-top,0px) + 112px);left:0;right:0;text-align:center;font:800 22px/1 'Baloo 2',sans-serif;color:#8a4b2a}
+#target{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 140px);transform:translateX(-50%);width:min(36vh,70vw);aspect-ratio:1;border-radius:36px;background:rgba(255,255,255,.6);border:6px dashed rgba(138,75,42,.35);display:grid;place-items:center}
+#target.win{animation:pulse .6s;border-style:solid;border-color:#6cc04a;background:#fff}
+@keyframes pulse{50%{transform:translateX(-50%) scale(1.1)}}
+#target .it{width:84%;height:84%}
+#tray{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);display:flex;justify-content:center;gap:clamp(10px,3vw,26px);padding:0 12px;flex-wrap:wrap}
+.opt{width:clamp(84px,21vw,140px);aspect-ratio:1;border-radius:28px;background:#fff;display:grid;place-items:center;cursor:grab;box-shadow:0 6px 0 rgba(0,0,0,.1)}
+.opt .it{width:84%;height:84%}
+.opt.flying{transition:transform .45s ease-in!important}
+.opt.shake{animation:shake .45s}
+@keyframes shake{20%{rotate:-8deg}40%{rotate:8deg}60%{rotate:-5deg}80%{rotate:4deg}}
+.it{display:grid;place-items:center}
+.it svg{width:100%;height:100%}
+.it .em{line-height:1}
+.sh{filter:brightness(0) opacity(.72)}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<div id="hint"></div>
+<div id="target"></div>
+<div id="tray"></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const ANIMALS = K.ANIMALS.map((a) => ({ kind: 'em', e: a.e, n: a.n }));
+const DINOS = K.DINO_KINDS.map((k, i) => ({ kind: 'dino', k, c: Object.values(K.COLORS)[i], n: K.DINO_NAMES[k] }));
+const LEVELS = [
+  { name: '2 sjene', pool: 'a', n: 2 },
+  { name: '3 sjene', pool: 'a', n: 3 },
+  { name: '4 sjene', pool: 'a', n: 4 },
+  { name: 'Dinosauri', pool: 'd', n: 3 },
+  { name: 'Dino · 4', pool: 'd', n: 4 },
+  { name: 'Obrnuto', pool: 'a', n: 3, rev: true },
+  { name: 'Sve · 4', pool: 'x', n: 4, rev: 'mix' },
+];
+const ROUNDS = 6;
+let level = 0, done = 0, answer = null, busy = false;
+const target = document.getElementById('target'), tray = document.getElementById('tray');
+
+K.bar({ levels: menu });
+function menu() { K.levelMenu('sjene', 'Pronađi sjenu', LEVELS, start); }
+function itemHTML(it, shadow, size) {
+  const inner = it.kind === 'em' ? `<span class="em" style="font-size:${size}">${it.e}</span>` : K.dino(it.k, it.c);
+  return `<div class="it ${shadow ? 'sh' : ''}">${inner}</div>`;
+}
+function start(i) { level = i; done = 0; prog(); round(); }
+function prog() { document.getElementById('prog').textContent = '⭐'.repeat(done) + '⚪'.repeat(ROUNDS - done); }
+
+let last = null;
+function round() {
+  busy = false;
+  const L = LEVELS[level];
+  const pool = L.pool === 'a' ? ANIMALS : L.pool === 'd' ? DINOS : ANIMALS.concat(DINOS);
+  let opts;
+  do { opts = K.shuffle(pool).slice(0, L.n); answer = K.pick(opts); } while (last && answer === last);
+  last = answer;
+  const rev = L.rev === 'mix' ? Math.random() < 0.5 : !!L.rev;
+  target.className = '';
+  // target: sjena (normalno) ili slika u boji (obrnuto)
+  target.innerHTML = itemHTML(answer, !rev, 'min(28vh,54vw)');
+  target.dataset.rev = rev ? 1 : '';
+  document.getElementById('hint').textContent = rev ? 'Koja je ovo sjena?' : 'Čija je ovo sjena?';
+  K.say(rev ? 'Pronađi sjenu!' : 'Čija je ovo sjena?');
+  tray.innerHTML = '';
+  opts.forEach((o) => {
+    const el = document.createElement('div');
+    el.className = 'opt';
+    el.innerHTML = itemHTML(o, rev, 'clamp(60px,15vw,100px)');
+    el._it = o;
+    K.draggable(el, {
+      tap: (e) => choose(e),
+      drop: (x, y, e) => { const r = target.getBoundingClientRect(); return x > r.left && x < r.right && y > r.top && y < r.bottom ? choose(e) : false; },
+    });
+    tray.appendChild(el);
+  });
+}
+
+function choose(el) {
+  if (busy) return false;
+  if (el._it !== answer) {
+    K.sfx('bad'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    return false;
+  }
+  busy = true; el.dataset.locked = 1;
+  const t = target.getBoundingClientRect();
+  K.flyTo(el, t.left + t.width / 2, t.top + t.height / 2, 1.4);
+  el.style.opacity = '0';
+  setTimeout(() => {
+    target.innerHTML = itemHTML(answer, false, 'min(28vh,54vw)');
+    target.classList.add('win'); K.sfx('good');
+    K.say(answer.n.charAt(0).toUpperCase() + answer.n.slice(1) + '!');
+    done++; prog();
+    setTimeout(() => {
+      if (done >= ROUNDS) K.levelComplete('sjene', level, LEVELS.length, start, menu, 'Sve sjene su pronađene!');
+      else round();
+    }, 1300);
+  }, 450);
+  return true;
+}
+menu();
+</script>
+</body>
+</html>

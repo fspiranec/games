@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Balončići</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#7cc8f5,#d6f0ff);color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+.cloud{position:fixed;background:#fff;border-radius:999px;opacity:.8;height:40px}
+.cloud:before,.cloud:after{content:'';position:absolute;background:#fff;border-radius:50%}
+.cloud:before{width:50px;height:50px;left:16px;top:-24px}.cloud:after{width:38px;height:38px;left:52px;top:-16px}
+#hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 70px);left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:20}
+#task{background:rgba(255,255,255,.92);border-radius:999px;padding:8px 20px;font:800 22px/1.2 'Baloo 2',sans-serif;display:flex;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.1)}
+#task .dot{width:28px;height:28px;border-radius:50%;display:inline-block;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.1)}
+#task b{font-size:30px;color:#ff6b4a}
+.bal{position:fixed;left:0;top:0;cursor:pointer;will-change:transform;z-index:5}
+.bal svg{display:block;width:100%;height:auto;overflow:visible}
+.bal.bounce svg{animation:bn .4s}
+@keyframes bn{30%{transform:scale(1.15,.85)}60%{transform:scale(.92,1.08)}}
+.bit{position:fixed;width:12px;height:12px;border-radius:50%;pointer-events:none;z-index:6;animation:bit .55s ease-out forwards}
+@keyframes bit{to{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}}
+.num{position:fixed;font:800 90px/1 'Baloo 2',sans-serif;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.2);pointer-events:none;z-index:15;animation:num 1s ease-out forwards}
+@keyframes num{0%{transform:translate(-50%,-50%) scale(.5)}30%{transform:translate(-50%,-50%) scale(1.2)}100%{transform:translate(-50%,-120%) scale(1);opacity:0}}
+</style>
+</head>
+<body>
+<div class="cloud" style="width:120px;left:8%;top:30%"></div>
+<div class="cloud" style="width:100px;right:10%;top:55%"></div>
+<div class="cloud" style="width:90px;left:40%;top:80%"></div>
+<div id="hud"><div id="task"></div></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const COLS = [
+  { c: '#ff4b3e', one: 'crveni', many: 'CRVENE' },
+  { c: '#4a90e2', one: 'plavi', many: 'PLAVE' },
+  { c: '#ffd23f', one: 'žuti', many: 'ŽUTE' },
+  { c: '#4caf50', one: 'zeleni', many: 'ZELENE' },
+  { c: '#ff9a3c', one: 'narančasti', many: 'NARANČASTE' },
+  { c: '#9c5bd1', one: 'ljubičasti', many: 'LJUBIČASTE' },
+  { c: '#ff7eb6', one: 'ružičasti', many: 'RUŽIČASTE' },
+];
+const NUM = ['nula', 'jedan', 'dva', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam', 'devet', 'deset'];
+const LEVELS = [
+  { name: 'Slobodno', mode: 'free', goal: 10, speed: 55, size: 1.15, every: 1.1 },
+  { name: 'Brojimo do 10', mode: 'count', goal: 10, speed: 60, size: 1.1, every: 1.0 },
+  { name: 'Jedna boja', mode: 'color', goal: 8, speed: 60, size: 1.05, every: 0.9 },
+  { name: 'Redom 1–5', mode: 'order', goal: 5, speed: 45, size: 1.05, every: 1.1 },
+  { name: 'Brže!', mode: 'color', goal: 12, speed: 100, size: 0.85, every: 0.6 },
+  { name: 'Redom 1–10', mode: 'order', goal: 10, speed: 55, size: 0.95, every: 0.9 },
+];
+let level = 0, L = LEVELS[0], balloons = [], count = 0, want = null, nextN = 1, spawnT = 0, running = false, last = 0;
+const task = document.getElementById('task');
+
+K.bar({ levels: menu });
+function menu() { running = false; clear(); K.levelMenu('baloni', 'Balončići', LEVELS, start); }
+function clear() { balloons.forEach((b) => b.el.remove()); balloons = []; }
+
+function start(i) {
+  level = i; L = LEVELS[i]; count = 0; nextN = 1; spawnT = 0; clear();
+  want = L.mode === 'color' ? K.pick(COLS) : null;
+  renderTask();
+  if (want) K.say('Pukni ' + want.many.toLowerCase() + ' balone!');
+  else if (L.mode === 'order') K.say('Pukni balone redom, od jedan!');
+  else K.say('Pukni balone!');
+  running = true; last = performance.now(); requestAnimationFrame(loop);
+}
+function renderTask() {
+  if (L.mode === 'color') task.innerHTML = `Pukni <span class="dot" style="background:${want.c}"></span> ${want.many} <b>${count}/${L.goal}</b>`;
+  else if (L.mode === 'order') task.innerHTML = `Sljedeći broj: <b>${nextN <= L.goal ? nextN : '✓'}</b>`;
+  else task.innerHTML = `Baloni <b>${count}/${L.goal}</b>`;
+}
+
+function balloonSVG(c, n) {
+  const d = K.dark(c, 0.2);
+  return `<svg viewBox="0 0 100 160"><path d="M50 118 Q42 135 54 148 Q60 156 50 160" stroke="#8a8a8a" stroke-width="2" fill="none"/>
+    <ellipse cx="50" cy="58" rx="42" ry="52" fill="${c}"/><path d="M44 108 L56 108 L50 118Z" fill="${d}"/>
+    <ellipse cx="34" cy="34" rx="9" ry="15" fill="#fff" opacity=".45" transform="rotate(-20 34 34)"/>
+    ${n ? `<text x="50" y="76" text-anchor="middle" font-family="'Baloo 2',sans-serif" font-weight="800" font-size="52" fill="#fff" stroke="${d}" stroke-width="2">${n}</text>` : ''}</svg>`;
+}
+
+function spawn() {
+  let col = K.pick(COLS), n = 0;
+  if (L.mode === 'color' && Math.random() < 0.45) col = want;
+  if (L.mode === 'order') {
+    const live = balloons.map((b) => b.n);
+    if (nextN > L.goal) return;
+    if (!live.includes(nextN)) n = nextN;
+    else n = Math.min(L.goal, nextN + 1 + Math.floor(Math.random() * 3));
+  }
+  const w = Math.min(130, Math.max(80, innerWidth * 0.16)) * L.size;
+  const el = document.createElement('div');
+  el.className = 'bal'; el.style.width = w + 'px';
+  el.innerHTML = balloonSVG(col.c, n);
+  const b = { el, col, n, w, x: K.rnd(10, innerWidth - w - 10), y: innerHeight + 10, ph: Math.random() * 6, sp: L.speed * K.rnd(0.85, 1.2) };
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); hit(b); });
+  document.body.appendChild(el); balloons.push(b);
+}
+
+function loop(now) {
+  if (!running) return;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  spawnT -= dt;
+  if (spawnT <= 0 && balloons.length < 9) { spawn(); spawnT = L.every * K.rnd(0.7, 1.3); }
+  for (const b of balloons) {
+    b.y -= b.sp * dt; b.ph += dt * 1.6;
+    b.el.style.transform = `translate(${b.x + Math.sin(b.ph) * 12}px,${b.y}px) rotate(${Math.sin(b.ph) * 4}deg)`;
+  }
+  balloons = balloons.filter((b) => { if (b.y < -b.w * 1.8) { b.el.remove(); return false; } return true; });
+  requestAnimationFrame(loop);
+}
+
+function hit(b) {
+  if (!running || !b.el.isConnected) return;
+  const r = b.el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.width * 0.55;
+  if (L.mode === 'color' && b.col !== want) { bounce(b); return; }
+  if (L.mode === 'order' && b.n !== nextN) { bounce(b); return; }
+  pop(b, cx, cy);
+  count++;
+  if (L.mode === 'free') K.say(b.col.one.charAt(0).toUpperCase() + b.col.one.slice(1) + '!');
+  if (L.mode === 'count' || L.mode === 'order') { showNum(count, cx, cy); K.say(NUM[count]); }
+  if (L.mode === 'order') nextN++;
+  renderTask();
+  if (count >= L.goal) {
+    running = false;
+    setTimeout(() => { clear(); K.levelComplete('baloni', level, LEVELS.length, start, menu, 'Svi baloni su pukli!'); }, 700);
+  }
+}
+function bounce(b) { K.sfx('boing'); b.el.classList.remove('bounce'); void b.el.offsetWidth; b.el.classList.add('bounce'); }
+function pop(b, cx, cy) {
+  K.sfx('pop');
+  b.el.remove(); balloons = balloons.filter((x) => x !== b);
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div'); p.className = 'bit';
+    const a = (i / 12) * Math.PI * 2, d = K.rnd(40, 90);
+    p.style.cssText = `left:${cx - 6}px;top:${cy - 6}px;background:${b.col.c};--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px`;
+    document.body.appendChild(p); setTimeout(() => p.remove(), 600);
+  }
+}
+function showNum(n, x, y) {
+  const el = document.createElement('div'); el.className = 'num'; el.textContent = n;
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 1000);
+}
+menu();
+</script>
+</body>
+</html>

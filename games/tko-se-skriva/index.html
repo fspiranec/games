@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tko se skriva?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#a8e0ff 0 35%,#8fd16a 35% 100%);color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#ask{position:fixed;top:calc(env(safe-area-inset-top,0px) + 66px);left:50%;transform:translateX(-50%);background:#fff;border-radius:28px;padding:8px 22px;display:flex;align-items:center;gap:12px;font:800 clamp(22px,5vw,32px)/1 'Baloo 2',sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.12);white-space:nowrap;z-index:5}
+#ask .em{font-size:clamp(44px,9vw,64px);line-height:1}
+#prog{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:0;right:0;text-align:center;font-size:28px;letter-spacing:6px}
+#field{position:fixed;left:0;right:0;top:170px;bottom:60px;display:grid;place-content:center;gap:var(--g);grid-template-columns:repeat(var(--c),var(--s))}
+.spot{position:relative;width:var(--s);height:var(--s);cursor:pointer;border:0;background:none;padding:0}
+.spot .an{position:absolute;left:50%;bottom:8%;transform:translate(-50%,0);font-size:calc(var(--s)*.4);line-height:1;transition:transform .35s cubic-bezier(.3,1.6,.5,1);z-index:1}
+.spot.peek .an{transform:translate(-50%,-135%)}
+.spot.yes .an{transform:translate(-50%,-135%) scale(1.25)}
+.spot .cv{position:absolute;inset:0;z-index:2}
+.spot .cv svg{width:100%;height:100%;display:block}
+.spot.wig .cv{animation:wig .4s}
+@keyframes wig{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+#memo{position:fixed;left:0;right:0;top:44%;text-align:center;font:800 54px/1 'Baloo 2',sans-serif;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.2);pointer-events:none;z-index:10}
+</style>
+</head>
+<body>
+<div id="ask"></div>
+<div id="field"></div>
+<div id="memo"></div>
+<div id="prog"></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const COVERS = [
+  (s) => `<svg viewBox="0 0 100 100"><circle cx="28" cy="66" r="24" fill="${s}"/><circle cx="52" cy="54" r="30" fill="${K.light(s, .12)}"/><circle cx="74" cy="68" r="22" fill="${s}"/><rect x="6" y="66" width="88" height="26" rx="13" fill="${K.dark(s, .1)}"/><circle cx="44" cy="46" r="4" fill="#ff5a7a"/><circle cx="66" cy="60" r="4" fill="#ffd23f"/></svg>`,
+  () => `<svg viewBox="0 0 100 100"><path d="M8 92 Q4 56 30 44 Q50 30 72 42 Q96 54 92 92Z" fill="#9aa5ad"/><path d="M30 52 Q46 44 60 50" stroke="#c4ccd2" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`,
+  () => `<svg viewBox="0 0 100 100"><rect x="12" y="44" width="76" height="50" rx="4" fill="#c98b4e"/><rect x="12" y="44" width="76" height="12" fill="#a86e38"/><path d="M50 44 V94" stroke="#a86e38" stroke-width="5"/></svg>`,
+  () => `<svg viewBox="0 0 100 100"><path d="M10 94 Q14 48 50 40 Q86 48 90 94Z" fill="#f2c94c"/><path d="M24 60 l6 -6 M40 54 l4 -8 M60 52 l-3 -8 M74 62 l-6 -6 M30 78 l6 -6 M66 80 l-5 -7" stroke="#d4a72c" stroke-width="3" stroke-linecap="round"/></svg>`,
+];
+const LEVELS = [
+  { name: '3 skrovišta', n: 3, c: 3 },
+  { name: '4 skrovišta', n: 4, c: 2 },
+  { name: '6 skrovišta', n: 6, c: 3 },
+  { name: 'Zapamti · 4', n: 4, c: 2, memo: true },
+  { name: '8 skrovišta', n: 8, c: 4 },
+  { name: 'Zapamti · 6', n: 6, c: 3, memo: true },
+];
+const ROUNDS = 5;
+let level = 0, done = 0, target = null, busy = true, spots = [];
+const field = document.getElementById('field'), ask = document.getElementById('ask');
+
+K.bar({ levels: menu });
+function menu() { K.levelMenu('skriva', 'Tko se skriva?', LEVELS, start); }
+function start(i) { level = i; done = 0; prog(); round(); }
+function prog() { document.getElementById('prog').textContent = '⭐'.repeat(done) + '⚪'.repeat(ROUNDS - done); }
+
+function layout() {
+  const L = LEVELS[level], rows = Math.ceil(L.n / L.c);
+  const top = 170, W = innerWidth - 32, H = innerHeight - top - 70;
+  const c = innerWidth < 500 && L.c > 2 ? Math.min(L.c, 2) : L.c, r = Math.ceil(L.n / c);
+  const g = 18, s = Math.floor(Math.min((W - g * (c - 1)) / c, (H - g * (r - 1)) / r, 220));
+  field.style.setProperty('--c', c); field.style.setProperty('--s', s + 'px'); field.style.setProperty('--g', g + 'px');
+}
+addEventListener('resize', layout);
+
+async function round() {
+  busy = true;
+  const L = LEVELS[level];
+  layout();
+  const animals = K.shuffle(K.ANIMALS).slice(0, L.n);
+  target = K.pick(animals);
+  const shades = ['#4caf50', '#3d9a52', '#5cb85c'];
+  field.innerHTML = ''; spots = [];
+  animals.forEach((a, i) => {
+    const el = document.createElement('button');
+    el.className = 'spot';
+    const cov = K.pick(COVERS);
+    el.innerHTML = `<span class="an">${a.e}</span><div class="cv">${cov(K.pick(shades))}</div>`;
+    el.onclick = () => tap(el, a);
+    field.appendChild(el); spots.push({ el, a });
+  });
+  ask.innerHTML = `Gdje je <span class="em">${target.e}</span>?`;
+  if (L.memo) {
+    ask.style.visibility = 'hidden';
+    document.getElementById('memo').textContent = 'Zapamti!';
+    K.say('Zapamti!');
+    spots.forEach((s) => s.el.classList.add('peek')); K.sfx('peek');
+    await K.wait(2600);
+    spots.forEach((s) => s.el.classList.remove('peek'));
+    document.getElementById('memo').textContent = '';
+    await K.wait(400);
+    ask.style.visibility = '';
+  }
+  K.say('Gdje je ' + target.n + '?');
+  busy = false;
+}
+
+async function tap(el, a) {
+  if (busy || el.classList.contains('peek')) return;
+  el.classList.remove('wig'); void el.offsetWidth; el.classList.add('wig');
+  el.classList.add('peek'); K.sfx('peek');
+  if (a === target) {
+    busy = true;
+    el.classList.add('yes'); K.sfx('good');
+    K.say('Bravo! ' + a.n.charAt(0).toUpperCase() + a.n.slice(1) + '!');
+    await K.wait(500);
+    spots.forEach((s) => s.el.classList.add('peek'));
+    done++; prog();
+    await K.wait(1600);
+    if (done >= ROUNDS) K.levelComplete('skriva', level, LEVELS.length, start, menu, 'Sve životinje su pronađene!');
+    else round();
+  } else {
+    K.say('To je ' + a.n + '.');
+    await K.wait(1100);
+    el.classList.remove('peek');
+  }
+}
+menu();
+</script>
+</body>
+</html>

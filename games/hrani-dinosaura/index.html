@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hrani dinosaura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#bfe9ff 0 55%,#9bd770 55% 100%);color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#prog{position:fixed;top:calc(env(safe-area-inset-top,0px) + 70px);left:0;right:0;text-align:center;font-size:30px;letter-spacing:6px}
+#stage{position:fixed;left:0;right:0;top:120px;bottom:180px;display:flex;align-items:center;justify-content:center;gap:2vw}
+#dino{width:min(48vh,52vw);aspect-ratio:1;position:relative}
+#dino svg{width:100%;height:100%;filter:drop-shadow(0 8px 0 rgba(0,0,0,.08))}
+#dino.chomp{animation:chomp .6s}
+#dino.no{animation:no .5s}
+@keyframes chomp{20%{transform:scale(1.12,0.9)}45%{transform:scale(.95,1.08) translateY(-12px)}70%{transform:scale(1.04,.97)}}
+@keyframes no{20%{transform:rotate(-6deg)}40%{transform:rotate(6deg)}60%{transform:rotate(-4deg)}80%{transform:rotate(3deg)}}
+#bubble{position:relative;background:#fff;border-radius:28px;padding:14px 18px;min-width:150px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.12);align-self:flex-start;margin-top:4vh}
+#bubble:after{content:'';position:absolute;right:-16px;top:40%;border:12px solid transparent;border-left:18px solid #fff}
+#want{width:90px;height:90px;margin:0 auto;display:grid;place-items:center}
+#want svg{width:100%;height:100%}
+#bubble b{display:block;font:800 26px/1.1 'Baloo 2',sans-serif;margin-top:6px}
+#tray{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);display:flex;justify-content:center;gap:clamp(10px,3vw,28px);padding:0 12px}
+.food{width:clamp(80px,20vw,128px);aspect-ratio:1;border-radius:28px;background:rgba(255,255,255,.85);display:grid;place-items:center;cursor:grab;box-shadow:0 6px 0 rgba(0,0,0,.1);position:relative}
+.food .em{font-size:clamp(50px,13vw,84px);line-height:1}
+.food svg{width:78%;height:78%}
+.food.eaten{transition:transform .45s ease-in,opacity .45s!important;opacity:0}
+.heart{position:fixed;font-size:40px;pointer-events:none;animation:up 1s forwards;z-index:30}
+@keyframes up{to{transform:translateY(-120px) scale(1.4);opacity:0}}
+@media (max-width:560px){#stage{flex-direction:column-reverse;gap:6px}#bubble{align-self:center;margin:0}#bubble:after{right:auto;left:50%;top:auto;bottom:-24px;border:12px solid transparent;border-top:16px solid #fff;margin-left:-12px}#dino{width:min(40vh,70vw)}}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<div id="stage"><div id="bubble"><div id="want"></div><b id="word"></b></div><div id="dino"></div></div>
+<div id="tray"></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const COLORS = [
+  { k: 'red', name: 'CRVENO', c: '#ff4b3e', foods: ['🍎', '🍓', '🍒', '🍅'] },
+  { k: 'yellow', name: 'ŽUTO', c: '#ffd23f', foods: ['🍌', '🧀', '🍋', '🌽'] },
+  { k: 'green', name: 'ZELENO', c: '#4caf50', foods: ['🥦', '🥒', '🍐', '🥝'] },
+  { k: 'orange', name: 'NARANČASTO', c: '#ff9a3c', foods: ['🍊', '🥕'] },
+  { k: 'purple', name: 'LJUBIČASTO', c: '#9c5bd1', foods: ['🍇', '🍆'] },
+  { k: 'brown', name: 'SMEĐE', c: '#8b5a2b', foods: ['🍪', '🥔', '🍫'] },
+];
+const SHAPES = [
+  { k: 'krug', name: 'KRUG', svg: '<circle cx="50" cy="50" r="40"/>' },
+  { k: 'kvadrat', name: 'KVADRAT', svg: '<rect x="12" y="12" width="76" height="76" rx="8"/>' },
+  { k: 'trokut', name: 'TROKUT', say: 'trokut', svg: '<path d="M50 9 L93 86 L7 86Z"/>' },
+  { k: 'zvijezda', name: 'ZVIJEZDU', svg: '<path d="M50 6 L61 37 L94 38 L68 58 L77 90 L50 71 L23 90 L32 58 L6 38 L39 37Z"/>' },
+  { k: 'srce', name: 'SRCE', svg: '<path d="M50 88 C10 60 4 30 27 17 C40 10 50 20 50 30 C50 20 60 10 73 17 C96 30 90 60 50 88Z"/>' },
+];
+const CK = ['#ff4b3e', '#ffd23f', '#4aa3df', '#4caf50', '#ff9a3c', '#9c5bd1', '#ff7eb6'];
+const LEVELS = [
+  { name: 'Boje · 2', type: 'color', n: 2 },
+  { name: 'Boje · 3', type: 'color', n: 3 },
+  { name: 'Boje · 4', type: 'color', n: 4 },
+  { name: 'Oblici · 2', type: 'shape', n: 2 },
+  { name: 'Oblici · 3', type: 'shape', n: 3 },
+  { name: 'Oblici · 4', type: 'shape', n: 4 },
+  { name: 'Sve · 4', type: 'mix', n: 4 },
+];
+const GOAL = 5;
+let level = 0, fed = 0, target = null, busy = false;
+const dinoEl = document.getElementById('dino'), tray = document.getElementById('tray');
+const DINO_COLORS = [K.COLORS.green, K.COLORS.purple, K.COLORS.blue, K.COLORS.teal, K.COLORS.orange, K.COLORS.pink, K.COLORS.green];
+
+K.bar({ levels: menu });
+function menu() { K.levelMenu('hrani', 'Hrani dinosaura', LEVELS, start); }
+
+function shapeSVG(s, fill, stroke) {
+  return `<svg viewBox="0 0 100 100"><g fill="${fill}" stroke="${stroke || K.dark(fill === 'none' ? '#888888' : fill, 0.25)}" stroke-width="5" stroke-linejoin="round" ${fill === 'none' ? 'stroke-dasharray="9 7"' : ''}>${s.svg}</g></svg>`;
+}
+
+function start(i) {
+  level = i; fed = 0;
+  dinoEl.innerHTML = K.dino('rex', DINO_COLORS[i]);
+  renderProg(); round();
+}
+function renderProg() { document.getElementById('prog').textContent = '⭐'.repeat(fed) + '⚪'.repeat(GOAL - fed); }
+
+function round() {
+  busy = false;
+  const L = LEVELS[level];
+  const type = L.type === 'mix' ? K.pick(['color', 'shape']) : L.type;
+  let opts;
+  if (type === 'color') {
+    opts = K.shuffle(COLORS).slice(0, L.n).map((c) => ({ key: c.k, data: c, html: `<span class="em">${K.pick(c.foods)}</span>` }));
+  } else {
+    const cols = K.shuffle(CK);
+    opts = K.shuffle(SHAPES).slice(0, L.n).map((s, j) => ({ key: s.k, data: s, html: shapeSVG(s, cols[j]) }));
+  }
+  target = K.pick(opts);
+  const want = document.getElementById('want'), word = document.getElementById('word');
+  if (type === 'color') {
+    want.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="${target.data.c}" stroke="#fff" stroke-width="6"/></svg>`;
+    word.textContent = target.data.name;
+    K.say('Daj mi nešto ' + target.data.name.toLowerCase() + '!');
+  } else {
+    want.innerHTML = shapeSVG(target.data, 'none', '#7a8a96');
+    word.textContent = target.data.name;
+    K.say('Daj mi ' + target.data.name.toLowerCase() + '!');
+  }
+  tray.innerHTML = '';
+  K.shuffle(opts).forEach((o) => {
+    const el = document.createElement('div');
+    el.className = 'food'; el.innerHTML = o.html; el.dataset.key = o.key;
+    K.draggable(el, {
+      tap: (e) => give(e),
+      drop: (x, y, e) => { const r = dinoEl.getBoundingClientRect(); if (x > r.left && x < r.right && y > r.top && y < r.bottom) return give(e); return false; },
+    });
+    tray.appendChild(el);
+  });
+}
+
+function give(el) {
+  if (busy) return false;
+  if (el.dataset.key !== target.key) {
+    K.sfx('bad'); dinoEl.classList.remove('no'); void dinoEl.offsetWidth; dinoEl.classList.add('no');
+    K.say('Ne to. Probaj opet!');
+    return false;
+  }
+  busy = true;
+  const d = dinoEl.getBoundingClientRect();
+  el.dataset.locked = 1;
+  K.flyTo(el, d.left + d.width * 0.72, d.top + d.height * 0.4, 0.3);
+  el.style.opacity = '0';
+  setTimeout(() => {
+    K.sfx('munch'); dinoEl.classList.remove('chomp'); void dinoEl.offsetWidth; dinoEl.classList.add('chomp');
+    hearts(d); fed++; renderProg();
+    setTimeout(() => {
+      K.sfx('good');
+      if (fed >= GOAL) K.levelComplete('hrani', level, LEVELS.length, start, menu, 'Dino je sit i sretan!');
+      else round();
+    }, 900);
+  }, 450);
+  return true;
+}
+function hearts(d) {
+  for (let i = 0; i < 4; i++) {
+    const h = document.createElement('div'); h.className = 'heart'; h.textContent = K.pick(['💖', '💛', '💚', '⭐']);
+    h.style.left = d.left + d.width * K.rnd(0.3, 0.8) + 'px'; h.style.top = d.top + d.height * K.rnd(0.1, 0.4) + 'px';
+    h.style.animationDelay = i * 0.12 + 's';
+    document.body.appendChild(h); setTimeout(() => h.remove(), 1600);
+  }
+}
+menu();
+</script>
+</body>
+</html>

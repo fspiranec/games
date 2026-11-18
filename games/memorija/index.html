@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memorija</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+:root{--bg1:#8fd3f0;--bg2:#c6ecd2;--ink:#173b52;--mute:#4d6b7c;--p1:#ff6b4a;--p2:#4aa3df;--bot:#6cc04a}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--ink);font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#score{position:fixed;top:calc(env(safe-area-inset-top,0px) + 66px);left:0;right:0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:0 12px}
+.pl{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.75);border-radius:999px;padding:6px 16px 6px 8px;font:800 18px/1 'Nunito',sans-serif;border:4px solid transparent;transition:transform .2s}
+.pl .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:18px}
+.pl b{font:800 26px/1 'Baloo 2',sans-serif}
+.pl.on{border-color:currentColor;background:#fff;transform:scale(1.08)}
+#board{position:fixed;left:0;right:0;bottom:0;display:grid;place-content:center;gap:var(--gap)}
+.card{width:var(--cs);height:var(--cs);perspective:600px;cursor:pointer;border:0;padding:0;background:none}
+.card .in{position:relative;width:100%;height:100%;transition:transform .45s cubic-bezier(.3,1.3,.6,1);transform-style:preserve-3d}
+.card.up .in{transform:rotateY(180deg)}
+.card .f,.card .b{position:absolute;inset:0;border-radius:18%;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:grid;place-items:center;box-shadow:0 5px 0 rgba(0,0,0,.12),0 8px 18px rgba(0,0,0,.12)}
+.card .b{background:#ffb84d;background-image:radial-gradient(circle at 30% 30%,rgba(255,255,255,.35) 0 12%,transparent 13%),radial-gradient(circle at 70% 70%,rgba(255,255,255,.35) 0 12%,transparent 13%);border:5px solid #fff}
+.card .b span{font:800 calc(var(--cs)*.42)/1 'Baloo 2',sans-serif;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.15)}
+.card .f{background:#fff;transform:rotateY(180deg);border:5px solid #fff;overflow:hidden}
+.card .f svg{width:92%;height:92%}
+.card .f .em{font-size:calc(var(--cs)*.62);line-height:1}
+.card.got .f{border-color:var(--who)}
+.card.got .in{animation:yay .5s}
+@keyframes yay{50%{transform:rotateY(180deg) scale(1.15)}}
+.star{width:var(--cs);height:var(--cs);display:grid;place-items:center;font-size:calc(var(--cs)*.6)}
+.opt{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 14px}
+.opt button{border:3px solid #d6e8f0;background:#fff;border-radius:16px;padding:8px 12px;font:800 16px/1.1 'Nunito',sans-serif;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:74px}
+.opt button .ic{font-size:28px;line-height:1}
+.opt button.sel{border-color:#ff6b4a;background:#fff1ea}
+.lbl{font:800 12px/1 'Nunito',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:4px 0 8px}
+.names{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.names input{width:140px;font:800 18px 'Nunito',sans-serif;padding:8px 12px;border-radius:12px;border:3px solid #d6e8f0;text-align:center;color:var(--ink)}
+</style>
+</head>
+<body>
+<div id="score"></div>
+<div id="board"></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const LEVELS = [
+  { name: '2 × 3', c: 3, r: 2 },
+  { name: '3 × 4', c: 4, r: 3 },
+  { name: '4 × 4', c: 4, r: 4 },
+  { name: '4 × 5', c: 5, r: 4 },
+  { name: '5 × 5 ⭐', c: 5, r: 5, star: true },
+];
+const COL = K.COLORS;
+const DINO_SET = [
+  ['rex', COL.green], ['longneck', COL.blue], ['trike', COL.orange], ['stego', COL.purple], ['ptero', COL.pink], ['ankylo', COL.yellow],
+  ['rex', COL.red], ['longneck', COL.teal], ['trike', COL.pink], ['stego', COL.green], ['ptero', COL.blue], ['ankylo', COL.orange],
+];
+const THEMES = {
+  dino: { name: 'Dinosauri', icon: '🦕', items: DINO_SET.map(([k, c]) => ({ svg: K.dino(k, c), say: K.DINO_NAMES[k] })) },
+  pups: { name: 'Psići', icon: '🐶', items: K.PUPS.map((p) => ({ svg: K.pup(p), say: p.name })) },
+  farm: { name: 'Farma', icon: '🐄', items: ['🐄 krava', '🐖 svinja', '🐑 ovca', '🐔 kokoš', '🐴 konj', '🦆 patka', '🐐 koza', '🐇 zec', '🐕 pas', '🐈 mačka', '🦃 puran', '🐓 pijetao'].map(s) },
+  sea: { name: 'More', icon: '🐠', items: ['🐙 hobotnica', '🐠 riba', '🐬 dupin', '🐳 kit', '🦀 rak', '🐢 kornjača', '🦈 morski pas', '🐡 napuhača', '🦑 lignja', '🐚 školjka', '🦞 jastog', '🦭 tuljan'].map(s) },
+  cars: { name: 'Vozila', icon: '🚒', items: ['🚗 auto', '🚒 vatrogasci', '🚓 policija', '🚑 hitna', '🚜 traktor', '🚌 autobus', '🚂 vlak', '✈️ avion', '🚁 helikopter', '🚀 raketa', '🚲 bicikl', '⛵ brod'].map(s) },
+};
+function s(str) { const [e, ...n] = str.split(' '); return { em: e, say: n.join(' ') }; }
+const MODES = { solo: { name: 'Sam', icon: '🙂' }, two: { name: '2 igrača', icon: '👫' }, bot: { name: 'Protiv dina', icon: '🦖' } };
+const BOTS = { easy: { name: 'Pospani dino', icon: '😴', p: 0.25 }, hard: { name: 'Pametni dino', icon: '🤓', p: 0.85 } };
+
+let cfg = K.store.get('mem-cfg', { theme: 'dino', mode: 'solo', bot: 'easy', n1: 'Jan', n2: 'Lovro' });
+let level = 0, cards = [], open = [], busy = false, turn = 0, scores = [0, 0], tries = 0, seen = new Map(), players = [];
+const board = document.getElementById('board'), scoreEl = document.getElementById('score');
+
+K.bar({ levels: menu });
+
+function optRow(key, map) {
+  return `<div class="opt" data-k="${key}">${Object.entries(map).map(([k, v]) => `<button data-v="${k}" class="${cfg[key] === k ? 'sel' : ''}"><span class="ic">${v.icon}</span>${v.name}</button>`).join('')}</div>`;
+}
+function menu() {
+  const extra = `<div class="lbl">Slike</div>${optRow('theme', THEMES)}<div class="lbl">Tko igra</div>${optRow('mode', MODES)}
+    <div id="botRow" ${cfg.mode === 'bot' ? '' : 'hidden'}>${optRow('bot', BOTS)}</div>
+    <div class="names" id="nameRow" ${cfg.mode === 'solo' ? 'hidden' : ''}><input id="n1" value="${cfg.n1}" maxlength="12" aria-label="Ime 1"><input id="n2" value="${cfg.n2}" maxlength="12" aria-label="Ime 2" ${cfg.mode === 'two' ? '' : 'hidden'}></div>
+    <div class="lbl">Razina</div>`;
+  const ov = K.levelMenu('memorija', 'Memorija', LEVELS, (i) => { saveNames(); start(i); }, extra);
+  ov.querySelectorAll('.opt').forEach((row) => row.querySelectorAll('button').forEach((b) => (b.onclick = () => {
+    K.sfx('tap'); cfg[row.dataset.k] = b.dataset.v;
+    row.querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b));
+    ov.querySelector('#botRow').hidden = cfg.mode !== 'bot';
+    ov.querySelector('#nameRow').hidden = cfg.mode === 'solo';
+    ov.querySelector('#n2').hidden = cfg.mode !== 'two';
+    K.store.set('mem-cfg', cfg);
+  })));
+  function saveNames() { cfg.n1 = ov.querySelector('#n1').value.trim() || 'Igrač 1'; cfg.n2 = ov.querySelector('#n2').value.trim() || 'Igrač 2'; K.store.set('mem-cfg', cfg); }
+}
+
+function start(i) {
+  level = i;
+  const L = LEVELS[i], pairs = Math.floor((L.c * L.r) / 2);
+  const items = K.shuffle(THEMES[cfg.theme].items).slice(0, pairs);
+  const deck = K.shuffle(items.flatMap((it, id) => [{ id, it }, { id, it }]));
+  cards = []; open = []; busy = false; turn = 0; scores = [0, 0]; tries = 0; seen = new Map();
+  players = cfg.mode === 'solo' ? [{ name: cfg.n1 || 'Ti', color: 'var(--p1)', icon: '🙂' }]
+    : cfg.mode === 'two' ? [{ name: cfg.n1, color: 'var(--p1)', icon: '1' }, { name: cfg.n2, color: 'var(--p2)', icon: '2' }]
+    : [{ name: cfg.n1, color: 'var(--p1)', icon: '🙂' }, { name: BOTS[cfg.bot].name, color: 'var(--bot)', icon: '🦖', bot: true }];
+  board.innerHTML = '';
+  board.style.gridTemplateColumns = `repeat(${L.c}, var(--cs))`;
+  const mid = L.star ? Math.floor((L.c * L.r) / 2) : -1;
+  let k = 0;
+  for (let p = 0; p < L.c * L.r; p++) {
+    if (p === mid) { const st = document.createElement('div'); st.className = 'star'; st.textContent = '⭐'; board.appendChild(st); continue; }
+    const d = deck[k++], el = document.createElement('button');
+    el.className = 'card';
+    el.setAttribute('aria-label', 'Karta');
+    el.innerHTML = `<div class="in"><div class="b"><span>?</span></div><div class="f">${d.it.svg || `<span class="em">${d.it.em}</span>`}</div></div>`;
+    const c = { el, id: d.id, it: d.it, up: false, got: false, idx: cards.length };
+    el.onclick = () => { if (!busy && !players[turn].bot) flip(c); };
+    cards.push(c); board.appendChild(el);
+  }
+  layout(); renderScore();
+}
+
+function layout() {
+  const L = LEVELS[level]; if (!L) return;
+  const top = scoreEl.getBoundingClientRect().bottom + 10;
+  board.style.top = top + 'px';
+  const W = innerWidth - 24, H = innerHeight - top - 14;
+  const gap = Math.max(6, Math.min(14, Math.min(W, H) * 0.02));
+  const cs = Math.floor(Math.min((W - gap * (L.c - 1)) / L.c, (H - gap * (L.r - 1)) / L.r, 170));
+  board.style.setProperty('--cs', cs + 'px'); board.style.setProperty('--gap', gap + 'px');
+}
+addEventListener('resize', layout);
+
+function renderScore() {
+  scoreEl.innerHTML = players.map((p, i) => `<div class="pl ${players.length > 1 && i === turn ? 'on' : ''}" style="color:${p.color}"><span class="av" style="background:${p.color}">${p.icon}</span><span style="color:var(--ink)">${p.name}</span><b>${scores[i]}</b></div>`).join('')
+    + (players.length === 1 ? `<div class="pl" style="color:var(--ink)">Pokušaji <b>${tries}</b></div>` : '');
+}
+
+function remember(c) {
+  // dino "zaboravlja" ponekad
+  if (Math.random() < (BOTS[cfg.bot] || BOTS.easy).p) seen.set(c.idx, c.id);
+}
+
+async function flip(c) {
+  if (c.up || c.got || open.length >= 2) return;
+  c.up = true; c.el.classList.add('up'); K.sfx('flip');
+  remember(c);
+  open.push(c);
+  if (open.length < 2) return;
+  busy = true; tries++;
+  const [a, b] = open;
+  await K.wait(650);
+  if (a.id === b.id) {
+    a.got = b.got = true;
+    [a, b].forEach((x) => { x.el.classList.add('got'); x.el.style.setProperty('--who', players[turn].color); });
+    scores[turn]++; K.sfx('good'); K.say(a.it.say);
+    seen.delete(a.idx); seen.delete(b.idx);
+  } else {
+    await K.wait(500);
+    a.up = b.up = false; a.el.classList.remove('up'); b.el.classList.remove('up');
+    if (players.length > 1) turn = (turn + 1) % players.length;
+  }
+  open = []; renderScore();
+  if (cards.every((x) => x.got)) return finish();
+  busy = false;
+  if (players[turn].bot) botTurn();
+}
+
+async function botTurn() {
+  busy = true;
+  await K.wait(800);
+  const left = cards.filter((c) => !c.got);
+  const known = left.filter((c) => seen.has(c.idx));
+  let first = null, second = null;
+  for (const x of known) { const m = known.find((y) => y !== x && y.id === x.id); if (m) { first = x; second = m; break; } }
+  if (!first) {
+    const unknown = left.filter((c) => !seen.has(c.idx));
+    first = K.pick(unknown.length ? unknown : left);
+  }
+  busy = false; await flipBot(first);
+  if (!second) {
+    const m = left.find((y) => y !== first && seen.has(y.idx) && seen.get(y.idx) === first.id);
+    const pool = left.filter((y) => y !== first), unk = pool.filter((y) => !seen.has(y.idx));
+    second = m || K.pick(unk.length ? unk : pool);
+  }
+  await K.wait(700);
+  await flipBot(second);
+}
+async function flipBot(c) { busy = false; await flip(c); }
+
+function finish() {
+  let msg;
+  if (players.length === 1) msg = `Sve parove si našao u ${tries} pokušaja!`;
+  else if (scores[0] === scores[1]) msg = 'Neriješeno! Oboje ste super!';
+  else { const w = scores[0] > scores[1] ? 0 : 1; msg = `Pobjednik je ${players[w].name}!`; }
+  setTimeout(() => K.levelComplete('memorija', level, LEVELS.length, start, menu, msg), 500);
+}
+
+menu();
+</script>
+</body>
+</html>

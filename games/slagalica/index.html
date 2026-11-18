@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slagalica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#d9c8ff,#c1e3ff);color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#board{position:fixed;border-radius:16px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden}
+#board .ghost{position:absolute;inset:0;background-size:100% 100%;opacity:.22;filter:grayscale(.4)}
+#board .slot{position:absolute;border:2px dashed rgba(23,59,82,.25)}
+#board.full .ghost{opacity:1;filter:none;transition:opacity .6s}
+#tray{position:fixed;border-radius:20px;background:rgba(255,255,255,.35)}
+.pc{position:fixed;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,.25),0 0 0 3px #fff;cursor:grab;touch-action:none}
+.pc.ok{box-shadow:none;border-radius:0;cursor:default;z-index:1!important}
+.pc.ok.flash{animation:fl .4s}
+@keyframes fl{50%{filter:brightness(1.3)}}
+</style>
+</head>
+<body>
+<div id="tray"></div>
+<div id="board"></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const at = (svg, x, y, w, h) => svg.replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${h}" `);
+const C = K.COLORS;
+const SCENES = [
+  () => `<rect width="300" height="200" fill="#9fdcf2"/><circle cx="255" cy="38" r="22" fill="#ffd23f"/>
+    <ellipse cx="70" cy="40" rx="30" ry="12" fill="#fff"/><ellipse cx="150" cy="28" rx="22" ry="9" fill="#fff"/>
+    <path d="M0 140 Q80 100 160 130 T300 120 V200 H0Z" fill="#7ccf5a"/><path d="M0 170 Q150 140 300 170 V200 H0Z" fill="#5fb548"/>
+    ${at(K.dino('longneck', C.blue), 10, 60, 120, 120)}${at(K.dino('rex', C.green), 150, 85, 95, 95)}${at(K.dino('trike', C.orange), 225, 120, 70, 70)}`,
+  () => `<rect width="300" height="200" fill="#bfe9ff"/><rect y="70" width="300" height="130" fill="#2a9fd6"/><rect y="170" width="300" height="30" fill="#f3d59c"/>
+    <path d="M0 70 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-width="4"/>
+    ${at(K.dino('ptero', C.pink), 30, 0, 80, 80)}<path d="M190 60 L250 60 L240 72 L200 72Z" fill="#c0392b"/><path d="M220 60 V22 L245 52Z" fill="#fff"/>
+    <g fill="#ffd23f"><path d="M60 120 q14 -12 28 0 q-14 12 -28 0z M88 120 l10 -7 v14z"/></g>
+    <g fill="#ff7eb6"><path d="M150 140 q12 -10 24 0 q-12 10 -24 0z M174 140 l8 -6 v12z"/></g>
+    <g fill="#6cc04a"><path d="M220 110 q12 -10 24 0 q-12 10 -24 0z M244 110 l8 -6 v12z"/></g>
+    <path d="M20 200 q-5 -20 5 -30 q8 10 0 30z M270 200 q-6 -22 6 -34 q8 12 -2 34z" fill="#3d9a52"/>`,
+  () => `<rect width="300" height="200" fill="#ffd9b0"/><path d="M150 40 L230 160 H70Z" fill="#8d6e63"/><path d="M150 40 L170 70 L160 66 L150 78 L140 64 L130 70Z" fill="#ff5a4e"/>
+    <circle cx="150" cy="26" r="10" fill="#bbb" opacity=".7"/><circle cx="162" cy="12" r="8" fill="#bbb" opacity=".5"/>
+    <rect y="150" width="300" height="50" fill="#c9a26b"/>
+    ${at(K.dino('stego', C.purple), 0, 95, 110, 110)}${at(K.dino('ankylo', C.yellow), 190, 110, 105, 105)}
+    <ellipse cx="150" cy="182" rx="30" ry="9" fill="#a37b45"/><ellipse cx="140" cy="172" rx="9" ry="12" fill="#fffaf0"/><ellipse cx="158" cy="172" rx="9" ry="12" fill="#fffaf0"/>`,
+  () => `<rect width="300" height="200" fill="#b8e4ff"/><rect y="130" width="300" height="70" fill="#8fd16a"/>
+    <circle cx="40" cy="36" r="20" fill="#ffd23f"/><rect x="235" y="70" width="12" height="70" fill="#8b5a2b"/><circle cx="241" cy="60" r="34" fill="#4caf50"/>
+    ${at(K.pup(K.PUPS[0]), 10, 80, 100, 100)}${at(K.pup(K.PUPS[1]), 100, 70, 105, 105)}${at(K.pup(K.PUPS[4]), 195, 95, 90, 90)}
+    <circle cx="70" cy="40" r="5" fill="#ff7eb6"/><path d="M60 52 L70 45 L80 52" stroke="#555" fill="none"/>`,
+];
+const LEVELS = [
+  { name: '2 dijela', c: 2, r: 1 },
+  { name: '4 dijela', c: 2, r: 2 },
+  { name: '6 dijelova', c: 3, r: 2 },
+  { name: '9 dijelova', c: 3, r: 3 },
+  { name: '12 dijelova', c: 4, r: 3 },
+  { name: '16 dijelova', c: 4, r: 4 },
+];
+let level = 0, scene = 0, pieces = [], bw = 0, bh = 0, bx = 0, by = 0, url = '';
+const board = document.getElementById('board'), tray = document.getElementById('tray');
+
+K.bar({ levels: menu });
+function menu() { clear(); K.levelMenu('slagalica', 'Slagalica', LEVELS, start); }
+function clear() { pieces.forEach((p) => p.el.remove()); pieces = []; board.innerHTML = ''; board.classList.remove('full'); }
+
+function start(i) {
+  clear();
+  level = i; scene = (i + Math.floor(Math.random() * SCENES.length)) % SCENES.length;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" preserveAspectRatio="none">${SCENES[scene]()}</svg>`;
+  url = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+  const L = LEVELS[i];
+  board.innerHTML = `<div class="ghost" style="background-image:${url}"></div>`;
+  for (let r = 0; r < L.r; r++) for (let c = 0; c < L.c; c++) {
+    const s = document.createElement('div'); s.className = 'slot'; s.dataset.c = c; s.dataset.r = r; board.appendChild(s);
+    const el = document.createElement('div'); el.className = 'pc'; el.style.backgroundImage = url;
+    const p = { el, c, r, ok: false, tx: 0, ty: 0 };
+    K.draggable(el, { drop: (x, y) => drop(p) });
+    document.body.appendChild(el); pieces.push(p);
+  }
+  K.shuffle(pieces).forEach((p, k) => (p.k = k));
+  layout();
+  K.say('Složi sliku!');
+}
+
+function layout() {
+  const L = LEVELS[level]; if (!pieces.length) return;
+  const top = 76, W = innerWidth, H = innerHeight;
+  const wide = W > H * 1.2;
+  const areaW = wide ? W * 0.6 : W - 32, areaH = wide ? H - top - 20 : (H - top) * 0.55;
+  bw = Math.min(areaW, areaH * 1.5); bh = bw / 1.5;
+  bx = wide ? 20 + (areaW - bw) / 2 : (W - bw) / 2; by = top + (areaH - bh) / 2;
+  Object.assign(board.style, { left: bx + 'px', top: by + 'px', width: bw + 'px', height: bh + 'px' });
+  const pw = bw / L.c, ph = bh / L.r;
+  board.querySelectorAll('.slot').forEach((s) => Object.assign(s.style, { left: s.dataset.c * pw + 'px', top: s.dataset.r * ph + 'px', width: pw + 'px', height: ph + 'px' }));
+  // pladanj
+  const tX = wide ? bx + bw + 30 : 16, tY = wide ? top : by + bh + 20, tW = wide ? W - tX - 16 : W - 32, tH = wide ? H - top - 16 : H - tY - 16;
+  Object.assign(tray.style, { left: tX + 'px', top: tY + 'px', width: tW + 'px', height: tH + 'px' });
+  const n = pieces.length, cols = Math.max(1, Math.round(Math.sqrt((n * tW) / tH * (ph / pw)))), rows = Math.ceil(n / cols);
+  const cw = tW / cols, rh = tH / rows;
+  for (const p of pieces) {
+    Object.assign(p.el.style, { width: pw + 'px', height: ph + 'px', backgroundSize: `${bw}px ${bh}px`, backgroundPosition: `${-p.c * pw}px ${-p.r * ph}px` });
+    if (p.ok) { p.el.style.left = bx + p.c * pw + 'px'; p.el.style.top = by + p.r * ph + 'px'; continue; }
+    const cc = p.k % cols, rr = Math.floor(p.k / cols);
+    const x = tX + cc * cw + (cw - pw) / 2 + K.rnd(-6, 6), y = tY + rr * rh + (rh - ph) / 2 + K.rnd(-6, 6);
+    p.el.style.left = Math.max(4, Math.min(W - pw - 4, x)) + 'px'; p.el.style.top = Math.max(top, Math.min(H - ph - 4, y)) + 'px';
+  }
+}
+addEventListener('resize', layout);
+
+function drop(p) {
+  const L = LEVELS[level], pw = bw / L.c, ph = bh / L.r;
+  const r = p.el.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const sx = bx + (p.c + 0.5) * pw, sy = by + (p.r + 0.5) * ph;
+  if (Math.hypot(cx - sx, cy - sy) > Math.max(pw, ph) * 0.45) {
+    // u blizini ploče a krivo mjesto: lagani "ne"
+    if (cx > bx && cx < bx + bw && cy > by && cy < by + bh) K.sfx('boing');
+    return false;
+  }
+  p.ok = true; p.el.dataset.locked = 1;
+  p.el.style.transition = 'none'; p.el.style.transform = '';
+  p.el.style.left = bx + p.c * pw + 'px'; p.el.style.top = by + p.r * ph + 'px';
+  p.el.classList.add('ok', 'flash'); K.sfx('snap');
+  if (pieces.every((x) => x.ok)) {
+    board.classList.add('full');
+    setTimeout(() => { K.levelComplete('slagalica', level, LEVELS.length, start, menu, 'Slika je složena!'); }, 900);
+  }
+  return true;
+}
+menu();
+</script>
+</body>
+</html>

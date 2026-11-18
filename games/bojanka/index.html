@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bojanka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:#fdf6ec;color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#pic{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);bottom:calc(env(safe-area-inset-bottom,0px) + 110px);display:grid;place-items:center}
+#pic svg{max-width:100%;max-height:100%;width:100%;height:100%;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+#pic .r{cursor:pointer;transition:fill .2s}
+#pal{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;justify-content:center;gap:clamp(4px,1.4vw,12px);padding:0 10px;flex-wrap:wrap}
+.sw{width:clamp(36px,8.4vw,60px);aspect-ratio:1;border-radius:50%;border:4px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.2);cursor:pointer;transition:transform .15s;display:grid;place-items:center;font-size:clamp(18px,4vw,28px)}
+.sw.sel{transform:scale(1.25) translateY(-6px);box-shadow:0 0 0 4px #173b52,0 6px 14px rgba(0,0,0,.25)}
+#done{position:fixed;right:max(12px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 10px);z-index:41}
+</style>
+</head>
+<body>
+<div id="pic"></div>
+<div id="pal"></div>
+<script src="../_shared/kids.js"></script>
+<script>
+const R = (s) => s.replace(/<(rect|circle|ellipse|path|polygon)(?![^>]*class="n")/g, '<$1 class="r"');
+const PAGES = [
+  { name: 'Sunce', svg: `<rect x="0" y="0" width="400" height="230"/><path d="M0 230 Q200 190 400 230 V300 H0Z"/><circle cx="200" cy="115" r="62"/>
+      <g class="n" stroke-width="8" stroke-linecap="round"><path class="n" d="M200 25 V40 M200 190 V205 M110 115 H125 M275 115 H290 M136 51 L147 62 M253 168 L264 179 M264 51 L253 62 M147 168 L136 179"/></g>
+      <circle class="n" cx="180" cy="105" r="6" fill="#333"/><circle class="n" cx="220" cy="105" r="6" fill="#333"/><path class="n" d="M175 130 Q200 152 225 130" fill="none" stroke-width="5"/>` },
+  { name: 'Riba', svg: `<rect x="0" y="0" width="400" height="300"/><path d="M285 150 L370 85 L370 215Z"/><path d="M165 90 Q200 35 240 92Z"/>
+      <ellipse cx="190" cy="152" rx="112" ry="70"/><circle cx="125" cy="135" r="16"/><circle class="n" cx="122" cy="135" r="7" fill="#333"/>
+      <path class="n" d="M215 100 Q240 152 215 205" fill="none" stroke-width="4"/><circle cx="60" cy="70" r="14"/><circle cx="80" cy="35" r="9"/><path class="n" d="M100 180 Q115 195 135 182" fill="none" stroke-width="4"/>` },
+  { name: 'Kuća', svg: `<rect x="0" y="0" width="400" height="300"/><rect x="0" y="235" width="400" height="65"/><circle cx="60" cy="60" r="36"/>
+      <rect x="250" y="62" width="28" height="60"/><rect x="110" y="140" width="180" height="120"/><path d="M88 148 L200 58 L312 148Z"/>
+      <rect x="180" y="190" width="42" height="70" rx="4"/><rect x="128" y="162" width="38" height="38"/><rect x="236" y="162" width="38" height="38"/>
+      <circle class="n" cx="212" cy="228" r="4" fill="#333"/>` },
+  { name: 'Dinosaur', svg: `<rect x="0" y="0" width="400" height="300"/><circle cx="345" cy="48" r="30"/><path d="M0 245 Q200 222 400 245 V300 H0Z"/>
+      <rect x="150" y="195" width="32" height="60" rx="12"/><rect x="222" y="195" width="32" height="60" rx="12"/>
+      <path d="M148 154 L165 118 L182 150Z"/><path d="M190 148 L206 110 L222 146Z"/><path d="M232 150 L247 116 L260 157Z"/>
+      <path d="M30 205 Q120 152 175 150 Q262 140 284 172 Q302 212 252 230 Q160 252 118 224 Q78 218 30 205Z"/>
+      <path d="M258 172 Q268 100 302 90 Q352 80 362 110 Q366 136 322 136 Q300 142 292 184Z"/>
+      <ellipse cx="208" cy="208" rx="52" ry="20"/>
+      <circle class="n" cx="330" cy="106" r="7" fill="#333"/><path class="n" d="M335 124 Q348 130 356 122" fill="none" stroke-width="4"/>` },
+  { name: 'Auto', svg: `<rect x="0" y="0" width="400" height="300"/><circle cx="60" cy="55" r="32"/><rect x="340" y="120" width="18" height="120"/><circle cx="349" cy="100" r="40"/>
+      <rect x="0" y="240" width="400" height="60"/><path d="M130 150 L162 102 L262 102 L292 150Z"/>
+      <path d="M168 146 L183 112 L208 112 L208 146Z"/><path d="M218 146 L218 112 L250 112 L270 146Z"/>
+      <rect x="70" y="146" width="260" height="66" rx="22"/><circle cx="315" cy="170" r="9"/>
+      <circle cx="135" cy="215" r="29"/><circle cx="270" cy="215" r="29"/><circle cx="135" cy="215" r="11"/><circle cx="270" cy="215" r="11"/>` },
+  { name: 'Cvijet', svg: `<rect x="0" y="0" width="400" height="300"/><path d="M0 240 Q200 215 400 240 V300 H0Z"/>
+      <rect x="225" y="150" width="12" height="105"/><path d="M231 220 Q270 190 295 205 Q270 235 231 228Z"/><path d="M231 200 Q190 170 168 185 Q192 215 231 208Z"/>
+      ${[0, 72, 144, 216, 288].map((a) => `<circle cx="${231 + Math.cos(((a - 90) * Math.PI) / 180) * 38}" cy="${115 + Math.sin(((a - 90) * Math.PI) / 180) * 38}" r="27"/>`).join('')}
+      <circle cx="231" cy="115" r="24"/>
+      <ellipse cx="72" cy="70" rx="26" ry="20" transform="rotate(-25 72 70)"/><ellipse cx="118" cy="70" rx="26" ry="20" transform="rotate(25 118 70)"/>
+      <ellipse cx="76" cy="104" rx="18" ry="14" transform="rotate(25 76 104)"/><ellipse cx="114" cy="104" rx="18" ry="14" transform="rotate(-25 114 104)"/>
+      <ellipse cx="95" cy="88" rx="7" ry="28"/><path class="n" d="M92 62 Q85 45 78 42 M98 62 Q105 45 112 42" fill="none" stroke-width="3"/>` },
+];
+const LEVELS = PAGES.map((p) => ({ name: p.name }));
+const PAL = ['#ff4b3e', '#ff9a3c', '#ffd23f', '#6cc04a', '#2e8b57', '#4aa3df', '#1f4fa3', '#9c5bd1', '#ff7eb6', '#8b5a2b', '#222222', '#ffffff'];
+let level = 0, color = PAL[0];
+const pic = document.getElementById('pic'), pal = document.getElementById('pal');
+
+K.bar({ levels: menu });
+function menu() { K.levelMenu('bojanka', 'Bojanka', LEVELS, start); }
+
+PAL.forEach((c, i) => {
+  const b = document.createElement('button');
+  b.className = 'sw' + (i === 0 ? ' sel' : ''); b.style.background = c;
+  if (c === '#ffffff') { b.textContent = '🧽'; b.setAttribute('aria-label', 'Gumica'); }
+  b.onclick = () => { color = c; K.sfx('tap'); pal.querySelectorAll('.sw').forEach((x) => x.classList.toggle('sel', x === b)); };
+  pal.appendChild(b);
+});
+
+function start(i) {
+  level = i;
+  pic.innerHTML = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet"><g fill="#fff" stroke="#333" stroke-width="3.5" stroke-linejoin="round">${R(PAGES[i].svg)}</g></svg>`;
+  pic.querySelectorAll('.r').forEach((el) => el.addEventListener('pointerdown', (e) => { e.preventDefault(); paint(el); }));
+  K.say('Oboji ' + PAGES[i].name.toLowerCase() + '!');
+}
+let doneShown = false;
+function paint(el) {
+  el.setAttribute('fill', color);
+  K.sfx('paint');
+  const all = [...pic.querySelectorAll('.r')];
+  if (!doneShown && all.every((x) => x.getAttribute('fill') && x.getAttribute('fill') !== '#ffffff')) {
+    doneShown = true;
+    setTimeout(() => K.levelComplete('bojanka', level, LEVELS.length, (j) => { doneShown = false; start(j); }, () => { doneShown = false; menu(); }, 'Prekrasna slika!'), 400);
+  }
+}
+menu();
+</script>
+</body>
+</html>

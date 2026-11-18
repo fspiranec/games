@@ -27,6 +27,7 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 64px;display:grid;grid-temp
 .game div{padding:14px 18px 18px}
 .game h2{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05;margin:0}
 .game p{margin:6px 0 0;color:var(--mute);font-size:15px;line-height:1.4}
+.group{grid-column:1/-1;margin:24px 0 0;font-family:var(--display);font-weight:800;font-size:28px;color:var(--title)}
 </style>
 </head>
 <body>
@@ -37,12 +38,23 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 64px;display:grid;grid-temp
 <main id="list"></main>
 <script>
 /* Dodaj novu igru: stavi je u games/<ime>/index.html, sliku u games/<ime>/thumb.(svg|png|jpg) i dodaj red ovdje. */
+const t = (slug) => `games/${slug}/thumb.svg`;
 const GAMES = [
-  { name: 'Bijeg od kita', desc: 'Plivaj kroz more i izbjegni velika usta kita.', path: 'games/bijeg-od-kita/', thumb: 'games/bijeg-od-kita/thumb.svg' },
+  { name: 'Bijeg od kita', desc: 'Plivaj kroz more i izbjegni velika usta kita.', path: 'games/bijeg-od-kita/', thumb: t('bijeg-od-kita') },
+  { group: 'Za najmlađe (2–4 godine)' },
+  { name: 'Memorija', desc: 'Pronađi parove: dinosauri, psići, farma, more i vozila. Igraj sam, u dvoje ili protiv dina.', path: 'games/memorija/', thumb: t('memorija') },
+  { name: 'Hrani dinosaura', desc: 'Dino je gladan! Daj mu hranu prave boje ili oblika.', path: 'games/hrani-dinosaura/', thumb: t('hrani-dinosaura') },
+  { name: 'Pronađi sjenu', desc: 'Čija je ovo sjena? Spoji životinju s njezinom sjenom.', path: 'games/pronadi-sjenu/', thumb: t('pronadi-sjenu') },
+  { name: 'Balončići', desc: 'Pucaj balone, broji do deset i traži boje.', path: 'games/balonci/', thumb: t('balonci') },
+  { name: 'Tko se skriva?', desc: 'Pronađi životinju skrivenu iza grma, kamena ili kutije.', path: 'games/tko-se-skriva/', thumb: t('tko-se-skriva') },
+  { name: 'Izlegni jaje', desc: 'Kucaj po jajetu dok se ne izlegne mali dinosaur.', path: 'games/izlegni-jaje/', thumb: t('izlegni-jaje') },
+  { name: 'Slagalica', desc: 'Složi sliku od 2 do 16 dijelova.', path: 'games/slagalica/', thumb: t('slagalica') },
+  { name: 'Bojanka', desc: 'Odaberi boju i dodirni dio slike.', path: 'games/bojanka/', thumb: t('bojanka') },
 ];
 
 const list = document.getElementById('list');
 for (const g of GAMES) {
+  if (g.group) { const h = document.createElement('h3'); h.className = 'group'; h.textContent = g.group; list.appendChild(h); continue; }
   const a = document.createElement('a');
   a.className = 'game';
   a.href = g.path;
