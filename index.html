@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Igre</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#06324d">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
@@ -29,13 +33,17 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 64px;display:grid;grid-temp
 .game p{margin:6px 0 0;color:var(--mute);font-size:15px;line-height:1.4}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .lang{border:0;border-radius:999px;padding:10px 18px;background:rgba(255,255,255,.94);color:#173b52;font:800 17px var(--body);cursor:pointer}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+#install{background:#ffd23f}
+.offline{margin:8px 0 0;color:#9be59b;font-size:15px}
 .group{grid-column:1/-1;margin:24px 0 0;font-family:var(--display);font-weight:800;font-size:28px;color:var(--title)}
 </style>
 </head>
 <body>
 <header>
-  <div class="top"><h1 id="h1"></h1><button id="lang" class="lang"></button></div>
+  <div class="top"><h1 id="h1"></h1><div class="btns"><button id="install" class="lang" hidden></button><button id="lang" class="lang"></button></div></div>
   <p id="sub"></p>
+  <p id="offline" class="offline" hidden></p>
 </header>
 <main id="list"></main>
 <script src="games/_shared/kids.js"></script>
@@ -49,9 +57,26 @@ document.getElementById('sub').textContent = K.t('Odaberi igru i zaigraj.', 'Pic
 const lb = document.getElementById('lang');
 lb.textContent = '🗣️ ' + K.LANGS.find((l) => l.code === K.lang).label;
 lb.onclick = K.langMenu;
+
+// instalacija kao aplikacija + oznaka da sve radi bez interneta
+const ib = document.getElementById('install');
+let installEvt = null;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); installEvt = e;
+  ib.textContent = '📲 ' + K.t('Instaliraj', 'Install'); ib.hidden = false;
+});
+ib.onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; ib.hidden = true; };
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.ready.then(() => {
+    const o = document.getElementById('offline');
+    o.textContent = '✓ ' + K.t('Igre su spremljene i rade i bez interneta.', 'Games are saved and work without internet.');
+    o.hidden = false;
+  });
+}
 const GAMES = [
   { name: 'Bijeg od kita', desc: K.t('Plivaj kroz more i izbjegni velika usta kita.', 'Swim through the sea and escape the whale. (Croatian only)'), path: 'games/bijeg-od-kita/', thumb: t('bijeg-od-kita') },
-  { name: K.t('Jan i T-Rex: Lava', 'Jan and T-Rex: Lava'), desc: K.t('Jaši T-Rexa, preskači lavu i bježi od meteora.', 'Ride the T-Rex, jump over lava and dodge meteors.'), path: 'games/jan-i-trex-lava/', thumb: t('jan-i-trex-lava') },
+  { name: K.t('Jan i T-Rex: Lava', 'Jan and T-Rex: Lava'), desc: K.t('Jaši T-Rexa i preskači lavu što dalje možeš.', 'Ride the T-Rex and jump over the lava as far as you can.'), path: 'games/jan-i-trex-lava/', thumb: t('jan-i-trex-lava') },
   { group: K.t('Za najmlađe (2–4 godine)', 'For little ones (ages 2–4)') },
   { name: K.t('Mali doktor', 'Little doctor'), desc: K.t('Pregledaj pacijente, nađi bakterije i viruse povećalom i otjeraj ih. Pa u krv s bijelom krvnom stanicom!', 'Examine patients, find bacteria and viruses with a magnifier and chase them away. Then dive into the blood with a white blood cell!'), path: 'games/mali-doktor/', thumb: t('mali-doktor') },
   { name: K.t('Memorija', 'Memory'), desc: K.t('Pronađi parove: dinosauri, psići, farma, more i vozila. Igraj sam, u dvoje ili protiv dina.', 'Find the pairs: dinosaurs, puppies, farm, sea and vehicles. Play alone, with a friend or against the dino.'), path: 'games/memorija/', thumb: t('memorija') },

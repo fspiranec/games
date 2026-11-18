@@ -9,7 +9,6 @@
   <rect y="205" width="400" height="45" fill="#6b3b22"/><rect y="205" width="400" height="5" fill="#8a5030"/>
   <path d="M230 205 H330 L322 250 H238Z" fill="url(#lava)"/>
   <circle cx="255" cy="210" r="4" fill="#fff0a0"/><circle cx="300" cy="211" r="3" fill="#fff0a0"/>
-  <g transform="translate(330 40) rotate(30)"><path d="M0 0 L-10 -50" stroke="#ffb040" stroke-width="16" stroke-linecap="round" opacity=".6"/><circle r="15" fill="#5a3a30"/><circle cx="-4" cy="3" r="4" fill="#ff9a3a"/></g>
   <g transform="translate(130 200)">
     <path d="M-22 -62 Q-60 -60 -88 -48 L-22 -34Z" fill="#52b043"/>
     <rect x="-20" y="-34" width="14" height="34" rx="5" fill="#2f7a2a"/><rect x="4" y="-34" width="14" height="34" rx="5" fill="#52b043"/>

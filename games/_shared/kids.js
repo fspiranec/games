@@ -12,6 +12,14 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
 
+  /* ---------- igranje bez interneta (service worker u korijenu stranice) ---------- */
+  try {
+    const me = document.currentScript && document.currentScript.src;
+    if (me && 'serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+      navigator.serviceWorker.register(new URL('../../sw.js', me)).catch(() => {});
+    }
+  } catch (e) {}
+
   /* ---------- jezik ---------- */
   // Novi jezik: dodaj ga ovdje (voice = regex za glasove) i dodaj prijevod kao sljedeći argument u K.t(...)
   K.LANGS = [
