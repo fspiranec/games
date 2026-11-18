@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250">
+  <rect width="400" height="250" fill="#dff4ff"/>
+  <rect y="190" width="400" height="60" fill="#bfe3f2"/>
+  <rect x="80" y="196" width="240" height="40" rx="18" fill="#fff"/>
+  <rect x="180" y="14" width="40" height="40" rx="10" fill="#fff"/>
+  <rect x="194" y="22" width="12" height="24" rx="2" fill="#e63946"/><rect x="188" y="28" width="24" height="12" rx="2" fill="#e63946"/>
+  <!-- pup -->
+  <g transform="translate(130 60)">
+    <ellipse cx="70" cy="120" rx="34" ry="22" fill="#d9a066"/>
+    <ellipse cx="38" cy="64" rx="13" ry="24" transform="rotate(22 38 64)" fill="#9c6c3a"/>
+    <ellipse cx="102" cy="64" rx="13" ry="24" transform="rotate(-22 102 64)" fill="#9c6c3a"/>
+    <circle cx="70" cy="70" r="36" fill="#d9a066"/>
+    <ellipse cx="70" cy="86" rx="19" ry="14" fill="#f2dcc0"/>
+    <ellipse cx="70" cy="78" rx="8" ry="6" fill="#2a2a33"/>
+    <circle cx="57" cy="66" r="6.5" fill="#2a2a33"/><circle cx="83" cy="66" r="6.5" fill="#2a2a33"/>
+    <path d="M60 94 Q70 88 80 94" stroke="#2a2a33" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <rect x="80" y="86" width="30" height="7" rx="3.5" fill="#fff" stroke="#ccc" transform="rotate(20 80 86)"/><circle cx="108" cy="97" r="4" fill="#e63946"/>
+  </g>
+  <!-- bacteria -->
+  <g transform="translate(40 70) rotate(-18)">
+    <rect x="0" y="0" width="76" height="40" rx="20" fill="#7ccf4a" stroke="#4f8f2c" stroke-width="3"/>
+    <circle cx="29" cy="16" r="7" fill="#fff"/><circle cx="47" cy="16" r="7" fill="#fff"/><circle cx="30" cy="17" r="3.6" fill="#222"/><circle cx="48" cy="17" r="3.6" fill="#222"/>
+    <path d="M29 28 Q38 35 47 28" stroke="#222" stroke-width="3" fill="none"/>
+  </g>
+  <!-- virus -->
+  <g transform="translate(310 120)">
+    <g stroke="#7a3fa8" stroke-width="4">
+      <path d="M0 -28 V-42 M0 28 V42 M-28 0 H-42 M28 0 H42 M20 20 L30 30 M-20 -20 L-30 -30 M20 -20 L30 -30 M-20 20 L-30 30"/>
+    </g>
+    <g fill="#d6b8f2" stroke="#7a3fa8" stroke-width="2"><circle cx="0" cy="-44" r="6"/><circle cx="0" cy="44" r="6"/><circle cx="-44" cy="0" r="6"/><circle cx="44" cy="0" r="6"/><circle cx="31" cy="31" r="6"/><circle cx="-31" cy="-31" r="6"/><circle cx="31" cy="-31" r="6"/><circle cx="-31" cy="31" r="6"/></g>
+    <circle r="30" fill="#a77bdb" stroke="#7a3fa8" stroke-width="3"/>
+    <circle cx="-9" cy="-4" r="7" fill="#fff"/><circle cx="9" cy="-4" r="7" fill="#fff"/><circle cx="-8" cy="-3" r="3.6" fill="#222"/><circle cx="10" cy="-3" r="3.6" fill="#222"/>
+    <path d="M-10 8 Q0 17 10 8Z" fill="#222"/>
+  </g>
+  <!-- magnifier -->
+  <g transform="translate(300 40)">
+    <circle r="26" fill="rgba(220,245,255,.5)" stroke="#5b6b78" stroke-width="8"/>
+    <rect x="18" y="16" width="12" height="40" rx="6" fill="#5b6b78" transform="rotate(-45 18 16)"/>
+  </g>
+</svg>
