@@ -3,6 +3,7 @@
   "short_name": "Igre",
   "description": "Igre za djecu: dinosauri, mali doktor, memorija i još puno toga.",
   "lang": "hr",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

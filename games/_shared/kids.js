@@ -314,6 +314,10 @@
   .k-card{background:#fff;border-radius:28px;padding:24px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;font-family:'Nunito',system-ui,sans-serif;color:#173b52}
   .k-card h2{font:800 clamp(32px,7vw,46px)/1 'Baloo 2','Trebuchet MS',system-ui,sans-serif;margin:0 0 6px}
   .k-card p{margin:0 0 16px;font-size:17px;color:#4d6b7c}
+  .k-diff{display:inline-flex;background:#eef7fb;border-radius:999px;padding:5px;gap:4px;margin:4px 0 12px}
+  .k-diff button{border:0;border-radius:999px;padding:10px 20px;font:800 18px/1 'Nunito',system-ui,sans-serif;color:#4d6b7c;background:transparent;cursor:pointer}
+  .k-diff button.sel{background:#fff;color:#173b52;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+  .k-diff button[data-d="hard"].sel{background:#ff6b4a;color:#fff}
   .k-levels{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px}
   .k-lv{border:0;border-radius:22px;padding:12px 6px 10px;background:#eef7fb;color:#173b52;cursor:pointer;font:800 34px/1 'Baloo 2',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.08)}
   .k-lv small{font:800 13px/1.2 'Nunito',system-ui,sans-serif;color:#4d6b7c}
@@ -356,15 +360,40 @@
 
   /* ---------- razine ---------- */
   // id: ključ igre; levels: [{name}] ; onPick(index)
-  K.levelDone = (id, i) => { const d = K.store.get('lv-' + id, []); if (!d.includes(i)) { d.push(i); K.store.set('lv-' + id, d); } };
+  /* ---------- težina: lako / teško (pamti se posebno za svaku igru) ---------- */
+  K.diff = (id) => K.store.get('diff-' + id, 'easy');
+  K.hard = (id) => K.diff(id) === 'hard';
+  K.setDiff = (id, d) => K.store.set('diff-' + id, d);
+  const diffKey = (id) => 'lv-' + id + (K.hard(id) ? '-hard' : '');
+  const diffHTML = (id) => `<div class="k-diff">${[['easy', '😊', K.t('Lako', 'Easy')], ['hard', '💪', K.t('Teško', 'Hard')]].map(([d, ic, n]) =>
+    `<button data-d="${d}" class="${K.diff(id) === d ? 'sel' : ''}">${ic} ${n}</button>`).join('')}</div>`;
+  // gumb u gornjoj traci za igre bez izbornika razina
+  K.diffButton = function (id, onChange) {
+    const b = document.createElement('button'); b.className = 'k-btn';
+    const upd = () => (b.textContent = K.hard(id) ? '💪 ' + K.t('Teško', 'Hard') : '😊 ' + K.t('Lako', 'Easy'));
+    upd();
+    b.onclick = () => { K.sfx('tap'); K.setDiff(id, K.hard(id) ? 'easy' : 'hard'); upd(); onChange && onChange(K.diff(id)); };
+    document.querySelector('.k-bar > div').appendChild(b);
+    return b;
+  };
+
+  K.levelDone = (id, i) => { const k = diffKey(id), d = K.store.get(k, []); if (!d.includes(i)) { d.push(i); K.store.set(k, d); } };
   K.closeOverlay = () => document.querySelectorAll('.k-ov').forEach((o) => o.remove());
   K.levelMenu = function (id, title, levels, onPick, extraHTML) {
     K.closeOverlay();
-    const done = K.store.get('lv-' + id, []);
     const ov = document.createElement('div'); ov.className = 'k-ov';
-    ov.innerHTML = `<div class="k-card"><h2>${title}</h2><p>${K.t('Odaberi razinu', 'Choose a level')}</p>${extraHTML || ''}<div class="k-levels">${levels.map((l, i) =>
-      `<button class="k-lv ${done.includes(i) ? 'done' : ''}" data-i="${i}">${i + 1}<small>${l.name}</small><span class="st">${done.includes(i) ? '⭐' : ''}</span></button>`).join('')}</div></div>`;
+    ov.innerHTML = `<div class="k-card"><h2>${title}</h2>${diffHTML(id)}<p>${K.t('Odaberi razinu', 'Choose a level')}</p>${extraHTML || ''}<div class="k-levels">${levels.map((l, i) =>
+      `<button class="k-lv" data-i="${i}">${i + 1}<small>${l.name}</small><span class="st"></span></button>`).join('')}</div></div>`;
+    const stars = () => {
+      const done = K.store.get(diffKey(id), []);
+      ov.querySelectorAll('.k-lv').forEach((b) => { const ok = done.includes(+b.dataset.i); b.classList.toggle('done', ok); b.querySelector('.st').textContent = ok ? (K.hard(id) ? '🏆' : '⭐') : ''; });
+    };
+    stars();
     document.body.appendChild(ov);
+    ov.querySelectorAll('.k-diff button').forEach((b) => (b.onclick = () => {
+      K.sfx('tap'); K.setDiff(id, b.dataset.d);
+      ov.querySelectorAll('.k-diff button').forEach((x) => x.classList.toggle('sel', x === b)); stars();
+    }));
     ov.querySelectorAll('.k-lv').forEach((b) => (b.onclick = () => { K.sfx('tap'); ov.remove(); onPick(+b.dataset.i); }));
     return ov;
   };

@@ -21,6 +21,7 @@ body{margin:0;background:linear-gradient(180deg,#ffe8b8,#ffc9a8);color:#173b52;f
 .opt{width:clamp(84px,21vw,140px);aspect-ratio:1;border-radius:28px;background:#fff;display:grid;place-items:center;cursor:grab;box-shadow:0 6px 0 rgba(0,0,0,.1)}
 .opt .it{width:84%;height:84%}
 .opt.flying{transition:transform .45s ease-in!important}
+.opt.glow{box-shadow:0 0 0 6px #ffd23f,0 0 24px #ffd23f}
 .opt.shake{animation:shake .45s}
 @keyframes shake{20%{rotate:-8deg}40%{rotate:8deg}60%{rotate:-5deg}80%{rotate:4deg}}
 .it{display:grid;place-items:center}
@@ -48,7 +49,7 @@ const LEVELS = [
   { name: K.t('Obrnuto', 'Reverse'), pool: 'a', n: 3, rev: true },
   { name: K.t('Sve · 4', 'Mix · 4'), pool: 'x', n: 4, rev: 'mix' },
 ];
-const ROUNDS = 6;
+let ROUNDS = 6;
 let level = 0, done = 0, answer = null, busy = false;
 const target = document.getElementById('target'), tray = document.getElementById('tray');
 
@@ -58,7 +59,7 @@ function itemHTML(it, shadow, size) {
   const inner = it.kind === 'em' ? `<span class="em" style="font-size:${size}">${it.e}</span>` : K.dino(it.k, it.c);
   return `<div class="it ${shadow ? 'sh' : ''}">${inner}</div>`;
 }
-function start(i) { level = i; done = 0; prog(); round(); }
+function start(i) { level = i; done = 0; ROUNDS = K.hard('sjene') ? 8 : 6; prog(); round(); }
 function prog() { document.getElementById('prog').textContent = '⭐'.repeat(done) + '⚪'.repeat(ROUNDS - done); }
 
 let last = null;
@@ -67,7 +68,7 @@ function round() {
   const L = LEVELS[level];
   const pool = L.pool === 'a' ? ANIMALS : L.pool === 'd' ? DINOS : ANIMALS.concat(DINOS);
   let opts;
-  do { opts = K.shuffle(pool).slice(0, L.n); answer = K.pick(opts); } while (last && answer === last);
+  do { opts = K.shuffle(pool).slice(0, Math.min(L.n + (K.hard('sjene') ? 1 : 0), 5)); answer = K.pick(opts); } while (last && answer === last);
   last = answer;
   const rev = L.rev === 'mix' ? Math.random() < 0.5 : !!L.rev;
   target.className = '';
@@ -94,6 +95,7 @@ function choose(el) {
   if (busy) return false;
   if (el._it !== answer) {
     K.sfx('bad'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    if (!K.hard('sjene')) tray.querySelectorAll('.opt').forEach((o) => o.classList.toggle('glow', o._it === answer));
     return false;
   }
   busy = true; el.dataset.locked = 1;

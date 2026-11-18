@@ -54,11 +54,15 @@ const field = document.getElementById('field'), ask = document.getElementById('a
 
 K.bar({ levels: menu });
 function menu() { K.levelMenu('skriva', K.t('Tko se skriva?', 'Who is hiding?'), LEVELS, start); }
+function cfg() {
+  const L = LEVELS[level], h = K.hard('skriva');
+  return Object.assign({}, L, { n: Math.min(9, L.n + (h ? 2 : 0)), c: h && L.n + 2 > 6 ? 4 : h && L.n === 3 ? 3 : L.c });
+}
 function start(i) { level = i; done = 0; prog(); round(); }
 function prog() { document.getElementById('prog').textContent = '⭐'.repeat(done) + '⚪'.repeat(ROUNDS - done); }
 
 function layout() {
-  const L = LEVELS[level], rows = Math.ceil(L.n / L.c);
+  const L = cfg();
   const top = 170, W = innerWidth - 32, H = innerHeight - top - 70;
   const c = innerWidth < 500 && L.c > 2 ? Math.min(L.c, 2) : L.c, r = Math.ceil(L.n / c);
   const g = 18, s = Math.floor(Math.min((W - g * (c - 1)) / c, (H - g * (r - 1)) / r, 220));
@@ -68,7 +72,7 @@ addEventListener('resize', layout);
 
 async function round() {
   busy = true;
-  const L = LEVELS[level];
+  const L = cfg();
   layout();
   const animals = K.shuffle(K.ANIMALS).slice(0, L.n);
   target = K.pick(animals);
@@ -88,7 +92,7 @@ async function round() {
     document.getElementById('memo').textContent = K.t('Zapamti!', 'Remember!');
     K.say(K.t('Zapamti!', 'Remember!'));
     spots.forEach((s) => s.el.classList.add('peek')); K.sfx('peek');
-    await K.wait(2600);
+    await K.wait(K.hard('skriva') ? 1500 : 3000);
     spots.forEach((s) => s.el.classList.remove('peek'));
     document.getElementById('memo').textContent = '';
     await K.wait(400);
@@ -114,6 +118,7 @@ async function tap(el, a) {
     else round();
   } else {
     K.say(K.t('To je ', "That's the ") + a.n + '.');
+    if (!K.hard('skriva')) spots.forEach((s) => { if (s.a === target) { s.el.classList.remove('wig'); void s.el.offsetWidth; s.el.classList.add('wig'); } });
     await K.wait(1100);
     el.classList.remove('peek');
   }

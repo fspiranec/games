@@ -29,6 +29,8 @@ body{margin:0;background:linear-gradient(180deg,#bfe9ff 0 55%,#9bd770 55% 100%);
 .food .em{font-size:clamp(50px,13vw,84px);line-height:1}
 .food svg{width:78%;height:78%}
 .food.eaten{transition:transform .45s ease-in,opacity .45s!important;opacity:0}
+.food.hint{animation:hint .7s ease-in-out 3}
+@keyframes hint{50%{transform:translateY(-16px) scale(1.08)}}
 .heart{position:fixed;font-size:40px;pointer-events:none;animation:up 1s forwards;z-index:30}
 @keyframes up{to{transform:translateY(-120px) scale(1.4);opacity:0}}
 @media (max-width:560px){#stage{flex-direction:column-reverse;gap:6px}#bubble{align-self:center;margin:0}#bubble:after{right:auto;left:50%;top:auto;bottom:-24px;border:12px solid transparent;border-top:16px solid #fff;margin-left:-12px}#dino{width:min(40vh,70vw)}}
@@ -66,7 +68,7 @@ const LEVELS = [
   { name: K.t('Oblici', 'Shapes') + ' · 4', type: 'shape', n: 4 },
   { name: K.t('Sve', 'Mix') + ' · 4', type: 'mix', n: 4 },
 ];
-const GOAL = 5;
+let GOAL = 5;
 let level = 0, fed = 0, target = null, busy = false;
 const dinoEl = document.getElementById('dino'), tray = document.getElementById('tray');
 const DINO_COLORS = [K.COLORS.green, K.COLORS.purple, K.COLORS.blue, K.COLORS.teal, K.COLORS.orange, K.COLORS.pink, K.COLORS.green];
@@ -79,7 +81,7 @@ function shapeSVG(s, fill, stroke) {
 }
 
 function start(i) {
-  level = i; fed = 0;
+  level = i; fed = 0; GOAL = K.hard('hrani') ? 7 : 5;
   dinoEl.innerHTML = K.dino('rex', DINO_COLORS[i]);
   renderProg(); round();
 }
@@ -87,14 +89,14 @@ function renderProg() { document.getElementById('prog').textContent = '⭐'.repe
 
 function round() {
   busy = false;
-  const L = LEVELS[level];
+  const L = LEVELS[level], n = Math.min(L.n + (K.hard('hrani') ? 1 : 0), 5);
   const type = L.type === 'mix' ? K.pick(['color', 'shape']) : L.type;
   let opts;
   if (type === 'color') {
-    opts = K.shuffle(COLORS).slice(0, L.n).map((c) => ({ key: c.k, data: c, html: `<span class="em">${K.pick(c.foods)}</span>` }));
+    opts = K.shuffle(COLORS).slice(0, n).map((c) => ({ key: c.k, data: c, html: `<span class="em">${K.pick(c.foods)}</span>` }));
   } else {
     const cols = K.shuffle(CK);
-    opts = K.shuffle(SHAPES).slice(0, L.n).map((s, j) => ({ key: s.k, data: s, html: shapeSVG(s, cols[j]) }));
+    opts = K.shuffle(SHAPES).slice(0, n).map((s, j) => ({ key: s.k, data: s, html: shapeSVG(s, cols[j]) }));
   }
   target = K.pick(opts);
   const want = document.getElementById('want'), word = document.getElementById('word');
@@ -124,6 +126,7 @@ function give(el) {
   if (el.dataset.key !== target.key) {
     K.sfx('bad'); dinoEl.classList.remove('no'); void dinoEl.offsetWidth; dinoEl.classList.add('no');
     K.say(K.t('Ne to. Probaj opet!', 'Not that one. Try again!'));
+    if (!K.hard('hrani')) tray.querySelectorAll('.food').forEach((f) => f.classList.toggle('hint', f.dataset.key === target.key));
     return false;
   }
   busy = true;

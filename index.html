@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Igre</title>
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
 <meta name="theme-color" content="#06324d">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -65,7 +65,26 @@ addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault(); installEvt = e;
   ib.textContent = '📲 ' + K.t('Instaliraj', 'Install'); ib.hidden = false;
 });
-ib.onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; ib.hidden = true; };
+ib.onclick = async () => {
+  if (!installEvt) return installHelp();
+  installEvt.prompt(); await installEvt.userChoice; installEvt = null; ib.hidden = true;
+};
+// ako preglednik ne ponudi instalaciju sam, pokaži upute
+function installHelp() {
+  K.css();
+  const ov = document.createElement('div'); ov.className = 'k-ov';
+  ov.innerHTML = `<div class="k-card" style="text-align:left"><h2 style="text-align:center">📲 ${K.t('Instalacija', 'Install')}</h2>
+    <p>${K.t('Otvori ovu stranicu u <b>Chromeu</b> (ne u Facebooku, WhatsAppu ili Gmailu), pa:', 'Open this page in <b>Chrome</b> (not inside Facebook, WhatsApp or Gmail), then:')}</p>
+    <p>1. ${K.t('Dodirni izbornik <b>⋮</b> gore desno', 'Tap the <b>⋮</b> menu at the top right')}<br>2. ${K.t('Odaberi <b>Instaliraj aplikaciju</b> ili <b>Dodaj na početni zaslon</b>', 'Choose <b>Install app</b> or <b>Add to Home screen</b>')}<br>3. ${K.t('Otvori igre s ikone na početnom zaslonu', 'Open the games from the home-screen icon')}</p>
+    <p>${K.t('Koristi glavnu adresu stranice (npr. ime-projekta.vercel.app), ne dugu adresu pojedine verzije.', 'Use the main site address (e.g. project-name.vercel.app), not a long per-deployment address.')}</p>
+    <div class="k-row"><button class="k-big">OK</button></div></div>`;
+  ov.querySelector('button').onclick = () => ov.remove();
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
+}
+if (!matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) {
+  ib.textContent = '📲 ' + K.t('Instaliraj', 'Install'); ib.hidden = false;
+}
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
   navigator.serviceWorker.ready.then(() => {

@@ -117,7 +117,7 @@ function start(i) {
   K.shuffle(pieces).forEach((p, k) => (p.k = k));
   layout();
   K.say(K.t('Dobro pogledaj sliku!', 'Look carefully at the picture!'));
-  showPicture(5);
+  showPicture(K.hard('slagalica') ? 5 : 10);
 }
 
 function layout() {
@@ -157,7 +157,7 @@ function drop(p) {
   const r = p.el.getBoundingClientRect();
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   const sx = bx + (p.c + 0.5) * pw, sy = by + (p.r + 0.5) * ph;
-  if (Math.hypot(cx - sx, cy - sy) > Math.max(pw, ph) * 0.45) {
+  if (Math.hypot(cx - sx, cy - sy) > Math.max(pw, ph) * (K.hard('slagalica') ? 0.3 : 0.5)) {
     if (cx > bx && cx < bx + bw && cy > by && cy < by + bh) K.sfx('boing');
     return false;
   }

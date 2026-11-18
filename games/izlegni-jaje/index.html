@@ -57,6 +57,10 @@ const area = document.getElementById('nestArea'), hint = document.getElementById
 
 K.bar({ levels: menu });
 function menu() { K.levelMenu('jaje', K.t('Izlegni jaje', 'Hatch the egg'), LEVELS, start); }
+function cfg() {
+  const L = LEVELS[level], h = K.hard('jaje');
+  return Object.assign({}, L, { taps: Math.max(2, Math.round(L.taps * (h ? 1.6 : 0.7))), jump: L.jump || h });
+}
 function start(i) { level = i; hatched = 0; prog(); newRound(); }
 function prog() { document.getElementById('prog').textContent = '🥚'.repeat(LEVELS[level].eggs - hatched) + '🦖'.repeat(hatched); }
 
@@ -86,7 +90,7 @@ function place(e) {
 
 function newRound() {
   busy = false; area.innerHTML = ''; eggs = [];
-  const L = LEVELS[level], n = 1 + (L.decoys || 0);
+  const L = cfg(), n = 1 + (L.decoys || 0);
   const r = area.getBoundingClientRect();
   const w = Math.min(n > 1 ? 150 : 210, r.height / 1.45, (r.width - 40) / n);
   const real = Math.floor(Math.random() * n);
@@ -109,7 +113,7 @@ function newRound() {
 
 async function tap(e) {
   if (busy) return;
-  const L = LEVELS[level];
+  const L = cfg();
   if (!e.real) { K.sfx('boing'); e.el.classList.remove('hit'); void e.el.offsetWidth; e.el.classList.add('hit'); return; }
   e.taps++;
   K.sfx('crack');

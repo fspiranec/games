@@ -13,6 +13,9 @@ html,body{height:100%}
 body{margin:0;background:#fdf6ec;color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #pic{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);bottom:calc(env(safe-area-inset-bottom,0px) + 110px);display:grid;place-items:center}
 #pic svg{max-width:100%;max-height:100%;width:100%;height:100%;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+#example{position:fixed;right:max(12px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 66px);width:clamp(110px,22vw,190px);z-index:5;background:#fff;border-radius:12px;padding:4px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#example svg{width:100%;height:auto;display:block}
+#example:before{content:'👀';position:absolute;left:-14px;top:-14px;font-size:24px}
 #pic .r{cursor:pointer;transition:fill .2s}
 #pal{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;justify-content:center;gap:clamp(4px,1.4vw,12px);padding:0 10px;flex-wrap:wrap}
 .sw{width:clamp(36px,8.4vw,60px);aspect-ratio:1;border-radius:50%;border:4px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.2);cursor:pointer;transition:transform .15s;display:grid;place-items:center;font-size:clamp(18px,4vw,28px)}
@@ -22,6 +25,7 @@ body{margin:0;background:#fdf6ec;color:#173b52;font-family:'Nunito',system-ui,sa
 </head>
 <body>
 <div id="pic"></div>
+<div id="example" hidden></div>
 <div id="pal"></div>
 <script src="../_shared/kids.js"></script>
 <script>
@@ -79,9 +83,21 @@ function start(i) {
   pic.innerHTML = `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet"><g fill="#fff" stroke="#333" stroke-width="3.5" stroke-linejoin="round">${R(PAGES[i].svg)}</g></svg>`;
   pic.querySelectorAll('.r').forEach((el) => el.addEventListener('pointerdown', (e) => { e.preventDefault(); paint(el); }));
   K.say(K.t('Oboji ', 'Colour the ') + PAGES[i].name.toLowerCase() + '!');
+  const ex = document.getElementById('example');
+  ex.hidden = !K.hard('bojanka');
+  if (K.hard('bojanka')) {
+    // svaki dio dobije svoju boju; primjer pokazuje kako treba izgledati
+    const cols = PAL.slice(0, 10);
+    pic.querySelectorAll('.r').forEach((el, j) => (el.dataset.t = j === 0 ? K.pick(['#4aa3df', '#ffd23f', '#6cc04a']) : K.pick(cols)));
+    const clone = pic.querySelector('svg').cloneNode(true);
+    clone.querySelectorAll('.r').forEach((el, j) => el.setAttribute('fill', pic.querySelectorAll('.r')[j].dataset.t));
+    ex.innerHTML = ''; ex.appendChild(clone);
+    K.say(K.t('Oboji kao na slici!', 'Colour it like the example!'));
+  }
 }
 let doneShown = false;
 function paint(el) {
+  if (el.dataset.t && color !== '#ffffff' && color !== el.dataset.t) { K.sfx('boing'); return; }
   el.setAttribute('fill', color);
   K.sfx('paint');
   const all = [...pic.querySelectorAll('.r')];

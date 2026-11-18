@@ -110,7 +110,7 @@ const LEVELS = [
   { name: K.t('U krvi', 'In the blood'), blood: true, germs: 8, patients: 2 },
   { name: K.t('Brze klice', 'Fast germs'), steps: ['zap2'], germs: 5, patients: 3, move: true, multiply: true },
 ];
-let level = 0, L = LEVELS[0], patientNo = 0, germs = [], tool = null, step = null, running = false, box = null, last = 0, splitT = 0, cells = [], explainedRbc = false;
+let GS = 0.17, LENS = 70, level = 0, L = LEVELS[0], patientNo = 0, germs = [], tool = null, step = null, running = false, box = null, last = 0, splitT = 0, cells = [], explainedRbc = false;
 const stage = document.getElementById('stage'), patientEl = document.getElementById('patient'), moodEl = document.getElementById('mood'),
   hint = document.getElementById('hint'), tray = document.getElementById('tray'), lens = document.getElementById('lens'),
   owie = document.getElementById('owie'), thermo = document.getElementById('thermo'), hero = document.getElementById('hero'), bed = document.getElementById('bed');
@@ -122,7 +122,10 @@ function setHint(t, say) { hint.textContent = t; if (say !== false) K.say(say ||
 function prog() { document.getElementById('prog').textContent = '🤒'.repeat(L.patients - patientNo) + '😄'.repeat(patientNo); }
 
 function start(i) {
-  stop(); level = i; L = LEVELS[i]; patientNo = 0;
+  const h = K.hard('doktor'), B = LEVELS[i];
+  stop(); level = i; patientNo = 0;
+  L = Object.assign({}, B, h ? { germs: B.germs + (B.blood ? 4 : 2), move: !B.blood, multiply: !!B.multiply } : { germs: Math.max(3, B.germs - 1), multiply: false });
+  GS = h ? 0.13 : 0.19; LENS = h ? 50 : 80;
   document.body.classList.toggle('blood', !!L.blood);
   prog(); nextPatient();
 }
@@ -135,7 +138,7 @@ function layoutPatient() {
   Object.assign(bed.style, { left: box.x - s * 0.08 + 'px', top: box.y + s * 0.84 + 'px', width: s * 1.16 + 'px', height: s * 0.22 + 'px' });
   Object.assign(moodEl.style, { left: box.x + s * 0.8 + 'px', top: box.y + s * 0.02 + 'px' });
 }
-addEventListener('resize', () => { if (!L.blood && box) { const old = box; layoutPatient(); germs.forEach((g) => { g.x = box.x + ((g.x - old.x) / old.s) * box.s; g.y = box.y + ((g.y - old.y) / old.s) * box.s; g.size = box.s * 0.17; place(g); }); } });
+addEventListener('resize', () => { if (!L.blood && box) { const old = box; layoutPatient(); germs.forEach((g) => { g.x = box.x + ((g.x - old.x) / old.s) * box.s; g.y = box.y + ((g.y - old.y) / old.s) * box.s; g.size = box.s * GS; place(g); }); } });
 
 async function nextPatient() {
   running = true;
@@ -163,7 +166,7 @@ function addGerm(near, hidden) {
   el.className = 'germ' + (hidden ? ' hidden' : '');
   el.innerHTML = type === 'b' ? bacteriaSVG(K.pick(BAC_COLS)) : virusSVG(K.pick(VIR_COLS));
   el.style.setProperty('--d', -Math.random() * 1.4 + 's');
-  const size = box.s * 0.17;
+  const size = box.s * GS;
   let x, y, tries = 0;
   do {
     const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 0.36;
@@ -237,7 +240,7 @@ const STEPS = {
     const move = (e) => {
       lens.style.left = e.clientX + 'px'; lens.style.top = e.clientY - 40 + 'px';
       const lx = e.clientX, ly = e.clientY - 40;
-      for (const g of germs) if (!g.found && Math.hypot(g.x - lx, g.y - ly) < 70) {
+      for (const g of germs) if (!g.found && Math.hypot(g.x - lx, g.y - ly) < LENS) {
         g.found = true; g.el.classList.remove('hidden'); g.el.classList.add('found'); K.sfx('peek');
         K.say(g.type === 'b' ? K.t('Bakterija!', 'Bacteria!') : 'Virus!');
       }
@@ -370,7 +373,7 @@ function addFloatingGerm(x) {
   const el = document.createElement('div'); el.className = 'germ';
   el.innerHTML = type === 'b' ? bacteriaSVG(K.pick(BAC_COLS)) : virusSVG(K.pick(VIR_COLS));
   el.style.setProperty('--d', -Math.random() * 1.4 + 's');
-  const g = { el, type, x: x == null ? -60 : x, y: K.rnd(170, innerHeight - 190), size: Math.min(90, innerWidth * 0.16), v: K.rnd(45, 80), ph: Math.random() * 6, found: true, dead: false };
+  const g = { el, type, x: x == null ? -60 : x, y: K.rnd(170, innerHeight - 190), size: Math.min(90, innerWidth * 0.16), v: K.rnd(45, 80) * (K.hard('doktor') ? 1.5 : 0.85), ph: Math.random() * 6, found: true, dead: false };
   el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); heroEat(g); });
   stage.appendChild(el); germs.push(g); place(g);
 }

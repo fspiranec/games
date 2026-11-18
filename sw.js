@@ -1,6 +1,6 @@
 // Service worker: sprema sve igre na uređaj da rade i bez interneta.
 // NE UREĐUJ sw.js ručno – napravi ga s:  node tools/update-sw.js
-const VERSION = '1bb25a48ed';
+const VERSION = '65c38c779f';
 const CACHE = 'igre-' + VERSION;
 const FONTS = 'igre-fonts';
 const FILES = [
@@ -70,24 +70,19 @@ self.addEventListener('fetch', (e) => {
   }
   if (url.origin !== self.location.origin) return;
 
-  // Stranice: s interneta ako ga ima (da stignu nove verzije), inače iz spremnika
-  if (req.mode === 'navigate') {
-    e.respondWith((async () => {
-      const c = await caches.open(CACHE);
-      try {
-        const res = await withTimeout(fetch(req), 4000);
-        if (res.ok) c.put(req, res.clone());
-        return res;
-      } catch (err) {
-        return (await c.match(req, { ignoreSearch: true })) || (await c.match('./'));
-      }
-    })());
-    return;
-  }
-
-  // Ostalo (slike, skripte): iz spremnika, a ako nema, s interneta
-  e.respondWith(caches.match(req, { ignoreSearch: true }).then((hit) => hit || fetch(req).then((res) => {
-    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-    return res;
-  })));
+  // Sve datoteke: s interneta ako ga ima (tako uvijek stigne nova verzija igara),
+  // a bez interneta iz spremnika na uređaju. Ponovna instalacija nikad nije potrebna.
+  e.respondWith((async () => {
+    const c = await caches.open(CACHE);
+    try {
+      const res = await withTimeout(fetch(req, { cache: 'no-cache' }), 4000);
+      if (res.ok) c.put(req, res.clone());
+      return res;
+    } catch (err) {
+      const hit = await c.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      if (req.mode === 'navigate') return (await c.match('./')) || Response.error();
+      return Response.error();
+    }
+  })());
 });

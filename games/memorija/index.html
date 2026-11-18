@@ -119,6 +119,13 @@ function start(i) {
     cards.push(c); board.appendChild(el);
   }
   layout(); renderScore();
+  // lako: na početku se sve karte nakratko pokažu
+  if (!K.hard('memorija')) {
+    busy = true;
+    setTimeout(() => cards.forEach((c) => c.el.classList.add('up')), 300);
+    K.say(K.t('Zapamti slike!', 'Remember the pictures!'));
+    setTimeout(() => { cards.forEach((c) => c.el.classList.remove('up')); busy = false; }, 2300 + pairs * 180);
+  }
 }
 
 function layout() {
@@ -157,7 +164,7 @@ async function flip(c) {
     scores[turn]++; K.sfx('good'); K.say(a.it.say);
     seen.delete(a.idx); seen.delete(b.idx);
   } else {
-    await K.wait(500);
+    await K.wait(K.hard('memorija') ? 150 : 500);
     a.up = b.up = false; a.el.classList.remove('up'); b.el.classList.remove('up');
     if (players.length > 1) turn = (turn + 1) % players.length;
   }

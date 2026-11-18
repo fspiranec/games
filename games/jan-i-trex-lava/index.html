@@ -72,8 +72,12 @@ document.getElementById('bj').textContent = K.t('Skoči', 'Jump');
 // beskonačna igra: samo preskakanje lave; kreće polako, a brzina i širina lave rastu kako trčiš dalje
 // (meteori su isključeni: met: 0 – stavi npr. 220 da se vrate)
 const L = { base: 4.5, max: 12, pit: [60, 150], gap: [320, 700], met: 0, metFrom: 80 };
+function applyDiff() {
+  Object.assign(L, K.hard('jan-lava') ? { base: 6, max: 13, pit: [80, 170], gap: [300, 620] } : { base: 4, max: 9, pit: [55, 120], gap: [360, 720] });
+}
 let lives = 3, invul = 0;
 K.bar();
+K.diffButton('jan-lava', () => { reset(); state = 'menu'; });
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 const W = 800, H = 450, GY = 372;
@@ -93,7 +97,8 @@ const keys = { l:false, r:false };
 try { best = +localStorage.getItem('janTrexLavaBest') || 0; } catch(e) {}
 
 function reset(){
-  speed = L.base; t = 0; dist = 0; score = 0; lives = 3; invul = 0;
+  applyDiff();
+  speed = L.base; t = 0; dist = 0; score = 0; lives = K.hard('jan-lava') ? 1 : 3; invul = 0;
   pits = []; meteors = []; parts = [];
   nextPit = 500; nextMet = L.met || 0; shake = 0;
   p.x = 150; p.y = GY; p.vy = 0; p.ground = true;

@@ -54,7 +54,7 @@ const LEVELS = [
   { name: K.t('Brže!', 'Faster!'), mode: 'color', goal: 12, speed: 100, size: 0.85, every: 0.6 },
   { name: K.t('Redom 1–10', 'In order 1–10'), mode: 'order', goal: 10, speed: 55, size: 0.95, every: 0.9 },
 ];
-let level = 0, L = LEVELS[0], balloons = [], count = 0, want = null, nextN = 1, spawnT = 0, running = false, last = 0;
+let HARD = false, level = 0, L = LEVELS[0], balloons = [], count = 0, want = null, nextN = 1, spawnT = 0, running = false, last = 0;
 const task = document.getElementById('task');
 
 K.bar({ levels: menu });
@@ -62,7 +62,8 @@ function menu() { running = false; clear(); K.levelMenu('baloni', K.t('Balonči�
 function clear() { balloons.forEach((b) => b.el.remove()); balloons = []; }
 
 function start(i) {
-  level = i; L = LEVELS[i]; count = 0; nextN = 1; spawnT = 0; clear();
+  HARD = K.hard('baloni');
+  level = i; L = Object.assign({}, LEVELS[i], HARD ? { goal: LEVELS[i].mode === 'order' ? LEVELS[i].goal : LEVELS[i].goal + 4 } : {}); count = 0; nextN = 1; spawnT = 0; clear();
   want = L.mode === 'color' ? K.pick(COLS) : null;
   renderTask();
   if (want) K.say(K.t('Pukni ', 'Pop the ') + want.many.toLowerCase() + K.t(' balone!', ' balloons!'));
@@ -93,11 +94,11 @@ function spawn() {
     if (!live.includes(nextN)) n = nextN;
     else n = Math.min(L.goal, nextN + 1 + Math.floor(Math.random() * 3));
   }
-  const w = Math.min(130, Math.max(80, innerWidth * 0.16)) * L.size;
+  const w = Math.min(130, Math.max(80, innerWidth * 0.16)) * L.size * (HARD ? 0.8 : 1.15);
   const el = document.createElement('div');
   el.className = 'bal'; el.style.width = w + 'px';
   el.innerHTML = balloonSVG(col.c, n);
-  const b = { el, col, n, w, x: K.rnd(10, innerWidth - w - 10), y: innerHeight + 10, ph: Math.random() * 6, sp: L.speed * K.rnd(0.85, 1.2) };
+  const b = { el, col, n, w, x: K.rnd(10, innerWidth - w - 10), y: innerHeight + 10, ph: Math.random() * 6, sp: L.speed * (HARD ? 1.45 : 0.8) * K.rnd(0.85, 1.2) };
   el.addEventListener('pointerdown', (e) => { e.preventDefault(); hit(b); });
   document.body.appendChild(el); balloons.push(b);
 }
@@ -106,7 +107,7 @@ function loop(now) {
   if (!running) return;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   spawnT -= dt;
-  if (spawnT <= 0 && balloons.length < 9) { spawn(); spawnT = L.every * K.rnd(0.7, 1.3); }
+  if (spawnT <= 0 && balloons.length < 9) { spawn(); spawnT = L.every * (HARD ? 0.7 : 1.1) * K.rnd(0.7, 1.3); }
   for (const b of balloons) {
     b.y -= b.sp * dt; b.ph += dt * 1.6;
     b.el.style.transform = `translate(${b.x + Math.sin(b.ph) * 12}px,${b.y}px) rotate(${Math.sin(b.ph) * 4}deg)`;
