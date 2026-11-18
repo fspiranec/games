@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const root = path.join(__dirname, '..');
-const SKIP = new Set(['.git', 'tools', 'node_modules', '.vercel', '.claude']);
+const SKIP = new Set(['.git', 'tools', 'node_modules', '.vercel', '.claude', 'HANDOVER.md', '.vercelignore']);
 const EXT = /\.(html|js|css|svg|png|jpg|jpeg|webp|json|webmanifest|mp3|ogg|wav|woff2?)$/i;
 
 const files = [];
