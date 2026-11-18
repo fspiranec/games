@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Igre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+:root{
+  --bg:#06324d; --card:#f6fcff; --ink:#0b2a3c; --mute:#4d6b7c; --accent:#ff6b4a; --title:#f6fcff; --sub:#a9d3e4;
+  --display:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,#0f7fa3,transparent),var(--bg);color:var(--ink);font-family:var(--body)}
+header{max-width:1100px;margin:0 auto;padding:48px 16px 24px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,8vw,64px);line-height:1;margin:0;color:var(--title)}
+h1 span{color:var(--accent)}
+header p{margin:10px 0 0;color:var(--sub);font-size:17px}
+main{max-width:1100px;margin:0 auto;padding:8px 16px 64px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px}
+.game{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--card);border-radius:20px;overflow:hidden;box-shadow:0 14px 40px rgba(0,20,35,.4);transition:transform .15s,box-shadow .15s}
+.game:hover,.game:focus-visible{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,20,35,.55)}
+.game:focus-visible{outline:4px solid var(--accent);outline-offset:3px}
+.game img{display:block;width:100%;aspect-ratio:8/5;object-fit:cover;background:#cfe4ee}
+.game div{padding:14px 18px 18px}
+.game h2{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05;margin:0}
+.game p{margin:6px 0 0;color:var(--mute);font-size:15px;line-height:1.4}
+</style>
+</head>
+<body>
+<header>
+  <h1>Moje <span>igre</span></h1>
+  <p>Odaberi igru i zaigraj.</p>
+</header>
+<main id="list"></main>
+<script>
+/* Dodaj novu igru: stavi je u games/<ime>/index.html, sliku u games/<ime>/thumb.(svg|png|jpg) i dodaj red ovdje. */
+const GAMES = [
+  { name: 'Bijeg od kita', desc: 'Plivaj kroz more i izbjegni velika usta kita.', path: 'games/bijeg-od-kita/', thumb: 'games/bijeg-od-kita/thumb.svg' },
+];
+
+const list = document.getElementById('list');
+for (const g of GAMES) {
+  const a = document.createElement('a');
+  a.className = 'game';
+  a.href = g.path;
+  a.innerHTML = `<img src="${g.thumb}" alt="" loading="lazy"><div><h2></h2><p></p></div>`;
+  a.querySelector('h2').textContent = g.name;
+  a.querySelector('p').textContent = g.desc || '';
+  list.appendChild(a);
+}
+</script>
+</body>
+</html>
