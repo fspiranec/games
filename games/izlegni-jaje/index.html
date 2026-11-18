@@ -41,13 +41,14 @@ body{margin:0;background:radial-gradient(900px 500px at 50% 110%,#f6d48f,transpa
 <div id="shelf"></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Izlegni jaje', 'Hatch the egg');
 const LEVELS = [
-  { name: '3 kucanja', taps: 3, eggs: 3 },
-  { name: '5 kucanja', taps: 5, eggs: 3 },
-  { name: 'Jaje skače', taps: 5, eggs: 3, jump: true },
-  { name: 'Koje se miče?', taps: 4, eggs: 3, decoys: 1 },
-  { name: 'Koje se miče? · 3', taps: 4, eggs: 3, decoys: 2 },
-  { name: 'Super jaje', taps: 8, eggs: 4, jump: true, decoys: 1 },
+  { name: K.t('3 kucanja', '3 taps'), taps: 3, eggs: 3 },
+  { name: K.t('5 kucanja', '5 taps'), taps: 5, eggs: 3 },
+  { name: K.t('Jaje skače', 'Jumping egg'), taps: 5, eggs: 3, jump: true },
+  { name: K.t('Koje se miče?', 'Which one wiggles?'), taps: 4, eggs: 3, decoys: 1 },
+  { name: K.t('Koje se miče? · 3', 'Which one wiggles? · 3'), taps: 4, eggs: 3, decoys: 2 },
+  { name: K.t('Super jaje', 'Super egg'), taps: 8, eggs: 4, jump: true, decoys: 1 },
 ];
 const SPOTS = ['#ff7eb6', '#4aa3df', '#6cc04a', '#a77bdb', '#ff9a3c', '#2ec4b6'];
 let level = 0, hatched = 0, eggs = [], busy = false, uid = 0;
@@ -55,7 +56,7 @@ let babies = K.store.get('jaje-bebe', []);
 const area = document.getElementById('nestArea'), hint = document.getElementById('hint');
 
 K.bar({ levels: menu });
-function menu() { K.levelMenu('jaje', 'Izlegni jaje', LEVELS, start); }
+function menu() { K.levelMenu('jaje', K.t('Izlegni jaje', 'Hatch the egg'), LEVELS, start); }
 function start(i) { level = i; hatched = 0; prog(); newRound(); }
 function prog() { document.getElementById('prog').textContent = '🥚'.repeat(LEVELS[level].eggs - hatched) + '🦖'.repeat(hatched); }
 
@@ -102,8 +103,8 @@ function newRound() {
     el.addEventListener('pointerdown', (ev) => { ev.preventDefault(); tap(e); });
     area.appendChild(el); eggs.push(e);
   }
-  hint.textContent = n > 1 ? 'Koje se jaje miče?' : 'Kucni jaje!';
-  K.say(n > 1 ? 'Koje se jaje miče?' : 'Kucni jaje!');
+  hint.textContent = n > 1 ? K.t('Koje se jaje miče?', 'Which egg is wiggling?') : K.t('Kucni jaje!', 'Tap the egg!');
+  K.say(n > 1 ? K.t('Koje se jaje miče?', 'Which egg is wiggling?') : K.t('Kucni jaje!', 'Tap the egg!'));
 }
 
 async function tap(e) {
@@ -125,12 +126,12 @@ async function tap(e) {
   e.el.querySelector('.cracks').style.display = 'none';
   await K.wait(200);
   e.el.classList.add('open'); K.sfx('squeak');
-  K.say('Bok! Ja sam ' + K.DINO_NAMES[e.baby.k] + '!');
+  K.say(K.t('Bok! Ja sam ', "Hi! I'm a ") + K.DINO_NAMES[e.baby.k] + '!');
   hint.textContent = K.DINO_NAMES[e.baby.k] + '!';
   hatched++; prog();
   babies.push(e.baby); babies = babies.slice(-60); K.store.set('jaje-bebe', babies); renderShelf();
   await K.wait(2400);
-  if (hatched >= L.eggs) K.levelComplete('jaje', level, LEVELS.length, start, menu, 'Izlegli su se svi dinosauri!');
+  if (hatched >= L.eggs) K.levelComplete('jaje', level, LEVELS.length, start, menu, K.t('Izlegli su se svi dinosauri!', 'All the dinosaurs hatched!'));
   else newRound();
 }
 

@@ -12,21 +12,28 @@
 html,body{height:100%}
 body{margin:0;background:linear-gradient(180deg,#d9c8ff,#c1e3ff);color:#173b52;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #board{position:fixed;border-radius:16px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden}
-#board .ghost{position:absolute;inset:0;background-size:100% 100%;opacity:.22;filter:grayscale(.4)}
-#board .slot{position:absolute;border:2px dashed rgba(23,59,82,.25)}
-#board.full .ghost{opacity:1;filter:none;transition:opacity .6s}
+#board .ghost{position:absolute;inset:0;background-size:100% 100%;opacity:.35;transition:opacity .8s}
+#board .lines{position:absolute;inset:0;width:100%;height:100%}
+#board.full .ghost{opacity:1}
 #tray{position:fixed;border-radius:20px;background:rgba(255,255,255,.35)}
-.pc{position:fixed;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,.25),0 0 0 3px #fff;cursor:grab;touch-action:none}
-.pc.ok{box-shadow:none;border-radius:0;cursor:default;z-index:1!important}
+.pc{position:fixed;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.3))}
+.pc svg{display:block;overflow:visible}
+.pc .hit{pointer-events:auto;cursor:grab}
+.pc.ok{filter:none;z-index:1!important}
+.pc.ok .hit{pointer-events:none;stroke:rgba(255,255,255,.25)}
 .pc.ok.flash{animation:fl .4s}
 @keyframes fl{50%{filter:brightness(1.3)}}
+#peek{position:fixed;z-index:35;width:52px;height:52px;border-radius:50%;border:0;background:#fff;font-size:28px;box-shadow:0 4px 12px rgba(0,0,0,.2);cursor:pointer}
+#peek:active{transform:scale(.92)}
 </style>
 </head>
 <body>
 <div id="tray"></div>
 <div id="board"></div>
+<button id="peek" aria-label="Pogledaj sliku">👀</button>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Slagalica', 'Puzzle');
 const at = (svg, x, y, w, h) => svg.replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${h}" `);
 const C = K.COLORS;
 const SCENES = [
@@ -52,81 +59,111 @@ const SCENES = [
     <circle cx="70" cy="40" r="5" fill="#ff7eb6"/><path d="M60 52 L70 45 L80 52" stroke="#555" fill="none"/>`,
 ];
 const LEVELS = [
-  { name: '2 dijela', c: 2, r: 1 },
-  { name: '4 dijela', c: 2, r: 2 },
-  { name: '6 dijelova', c: 3, r: 2 },
-  { name: '9 dijelova', c: 3, r: 3 },
-  { name: '12 dijelova', c: 4, r: 3 },
-  { name: '16 dijelova', c: 4, r: 4 },
+  { name: K.t('2 dijela', '2 pieces'), c: 2, r: 1 },
+  { name: K.t('4 dijela', '4 pieces'), c: 2, r: 2 },
+  { name: K.t('6 dijelova', '6 pieces'), c: 3, r: 2 },
+  { name: K.t('9 dijelova', '9 pieces'), c: 3, r: 3 },
+  { name: K.t('12 dijelova', '12 pieces'), c: 4, r: 3 },
+  { name: K.t('16 dijelova', '16 pieces'), c: 4, r: 4 },
 ];
-let level = 0, scene = 0, pieces = [], bw = 0, bh = 0, bx = 0, by = 0, url = '';
-const board = document.getElementById('board'), tray = document.getElementById('tray');
+let level = 0, scene = 0, pieces = [], bw = 0, bh = 0, bx = 0, by = 0, img = '', EH = [], EV = [], peekT = 0;
+const board = document.getElementById('board'), tray = document.getElementById('tray'), peek = document.getElementById('peek');
+peek.setAttribute('aria-label', K.t('Pogledaj sliku', 'Look at the picture'));
 
 K.bar({ levels: menu });
-function menu() { clear(); K.levelMenu('slagalica', 'Slagalica', LEVELS, start); }
-function clear() { pieces.forEach((p) => p.el.remove()); pieces = []; board.innerHTML = ''; board.classList.remove('full'); }
+function menu() { clear(); K.levelMenu('slagalica', K.t('Slagalica', 'Puzzle'), LEVELS, start); }
+function clear() { pieces.forEach((p) => p.el.remove()); pieces = []; board.innerHTML = ''; board.classList.remove('full'); peek.style.display = 'none'; }
+
+function showPicture(ms) {
+  board.classList.add('full'); clearTimeout(peekT);
+  peekT = setTimeout(() => { if (!pieces.every((x) => x.ok)) board.classList.remove('full'); }, ms);
+}
+peek.onclick = () => { K.sfx('peek'); showPicture(2500); };
+
+// oblik dijela: ravni rub na okviru, izbočina (+1) ili udubina (-1) prema susjedu
+function piecePath(p, ox, oy, pw, ph) {
+  const L = LEVELS[level], S = Math.min(pw, ph);
+  const top = p.r === 0 ? 0 : -EH[p.r - 1][p.c], bottom = p.r === L.r - 1 ? 0 : EH[p.r][p.c];
+  const left = p.c === 0 ? 0 : -EV[p.r][p.c - 1], right = p.c === L.c - 1 ? 0 : EV[p.r][p.c];
+  const edge = (x0, y0, x1, y1, s) => {
+    if (!s) return ` L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+    const len = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / len, uy = (y1 - y0) / len, nx = uy, ny = -ux;
+    const P = (a, b) => { const al = len / 2 + (a - 0.5) * S, h = b * S * s; return `${(x0 + ux * al + nx * h).toFixed(1)} ${(y0 + uy * al + ny * h).toFixed(1)}`; };
+    return ` L${P(0.38, 0)} C${P(0.43, 0)} ${P(0.44, 0.07)} ${P(0.40, 0.13)} C${P(0.34, 0.22)} ${P(0.40, 0.29)} ${P(0.50, 0.29)} C${P(0.60, 0.29)} ${P(0.66, 0.22)} ${P(0.60, 0.13)} C${P(0.56, 0.07)} ${P(0.57, 0)} ${P(0.62, 0)} L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  };
+  return `M${ox} ${oy}` + edge(ox, oy, ox + pw, oy, top) + edge(ox + pw, oy, ox + pw, oy + ph, right) + edge(ox + pw, oy + ph, ox, oy + ph, bottom) + edge(ox, oy + ph, ox, oy, left) + 'Z';
+}
 
 function start(i) {
   clear();
   level = i; scene = (i + Math.floor(Math.random() * SCENES.length)) % SCENES.length;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" preserveAspectRatio="none">${SCENES[scene]()}</svg>`;
-  url = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+  img = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   const L = LEVELS[i];
-  board.innerHTML = `<div class="ghost" style="background-image:${url}"></div>`;
+  const sign = () => (Math.random() < 0.5 ? 1 : -1);
+  EH = Array.from({ length: L.r }, () => Array.from({ length: L.c }, sign));
+  EV = Array.from({ length: L.r }, () => Array.from({ length: L.c }, sign));
   for (let r = 0; r < L.r; r++) for (let c = 0; c < L.c; c++) {
-    const s = document.createElement('div'); s.className = 'slot'; s.dataset.c = c; s.dataset.r = r; board.appendChild(s);
-    const el = document.createElement('div'); el.className = 'pc'; el.style.backgroundImage = url;
-    const p = { el, c, r, ok: false, tx: 0, ty: 0 };
-    K.draggable(el, { drop: (x, y) => drop(p) });
+    const el = document.createElement('div'); el.className = 'pc';
+    const p = { el, c, r, ok: false, id: r * L.c + c };
+    K.draggable(el, { drop: () => drop(p) });
     document.body.appendChild(el); pieces.push(p);
   }
   K.shuffle(pieces).forEach((p, k) => (p.k = k));
+  peek.style.display = '';
   layout();
-  K.say('Složi sliku!');
+  K.say(K.t('Pogledaj sliku. Sad je složi!', 'Look at the picture. Now put it together!'));
+  showPicture(2600);
 }
 
 function layout() {
   const L = LEVELS[level]; if (!pieces.length) return;
   const top = 76, W = innerWidth, H = innerHeight;
   const wide = W > H * 1.2;
-  const areaW = wide ? W * 0.6 : W - 32, areaH = wide ? H - top - 20 : (H - top) * 0.55;
+  const areaW = wide ? W * 0.58 : W - 32, areaH = wide ? H - top - 20 : (H - top) * 0.52;
   bw = Math.min(areaW, areaH * 1.5); bh = bw / 1.5;
   bx = wide ? 20 + (areaW - bw) / 2 : (W - bw) / 2; by = top + (areaH - bh) / 2;
   Object.assign(board.style, { left: bx + 'px', top: by + 'px', width: bw + 'px', height: bh + 'px' });
-  const pw = bw / L.c, ph = bh / L.r;
-  board.querySelectorAll('.slot').forEach((s) => Object.assign(s.style, { left: s.dataset.c * pw + 'px', top: s.dataset.r * ph + 'px', width: pw + 'px', height: ph + 'px' }));
-  // pladanj
+  Object.assign(peek.style, { left: bx + bw - 60 + 'px', top: by + 8 + 'px' });
+  const pw = bw / L.c, ph = bh / L.r, m = Math.min(pw, ph) * 0.34;
+  board.innerHTML = `<div class="ghost" style="background-image:url(&quot;${img}&quot;)"></div><svg class="lines" viewBox="0 0 ${bw} ${bh}">${pieces.map((p) =>
+    `<path d="${piecePath(p, p.c * pw, p.r * ph, pw, ph)}" fill="none" stroke="rgba(23,59,82,.35)" stroke-width="2" stroke-dasharray="6 5"/>`).join('')}</svg>`;
+  // pladanj s dijelovima
   const tX = wide ? bx + bw + 30 : 16, tY = wide ? top : by + bh + 20, tW = wide ? W - tX - 16 : W - 32, tH = wide ? H - top - 16 : H - tY - 16;
   Object.assign(tray.style, { left: tX + 'px', top: tY + 'px', width: tW + 'px', height: tH + 'px' });
-  const n = pieces.length, cols = Math.max(1, Math.round(Math.sqrt((n * tW) / tH * (ph / pw)))), rows = Math.ceil(n / cols);
+  const fw = pw + 2 * m, fh = ph + 2 * m;
+  const n = pieces.length, cols = Math.max(1, Math.round(Math.sqrt((n * tW) / tH * (fh / fw)))), rows = Math.ceil(n / cols);
   const cw = tW / cols, rh = tH / rows;
   for (const p of pieces) {
-    Object.assign(p.el.style, { width: pw + 'px', height: ph + 'px', backgroundSize: `${bw}px ${bh}px`, backgroundPosition: `${-p.c * pw}px ${-p.r * ph}px` });
-    if (p.ok) { p.el.style.left = bx + p.c * pw + 'px'; p.el.style.top = by + p.r * ph + 'px'; continue; }
+    const d = piecePath(p, m, m, pw, ph);
+    p.el.style.width = fw + 'px'; p.el.style.height = fh + 'px';
+    p.el.innerHTML = `<svg width="${fw}" height="${fh}" viewBox="0 0 ${fw} ${fh}"><defs><clipPath id="cp${p.id}"><path d="${d}"/></clipPath></defs>
+      <image href="${img}" x="${m - p.c * pw}" y="${m - p.r * ph}" width="${bw}" height="${bh}" preserveAspectRatio="none" clip-path="url(#cp${p.id})"/>
+      <path class="hit" d="${d}" fill="rgba(0,0,0,0)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+    if (p.ok) { p.el.style.left = bx + p.c * pw - m + 'px'; p.el.style.top = by + p.r * ph - m + 'px'; continue; }
     const cc = p.k % cols, rr = Math.floor(p.k / cols);
-    const x = tX + cc * cw + (cw - pw) / 2 + K.rnd(-6, 6), y = tY + rr * rh + (rh - ph) / 2 + K.rnd(-6, 6);
-    p.el.style.left = Math.max(4, Math.min(W - pw - 4, x)) + 'px'; p.el.style.top = Math.max(top, Math.min(H - ph - 4, y)) + 'px';
+    const x = tX + cc * cw + (cw - fw) / 2 + K.rnd(-6, 6), y = tY + rr * rh + (rh - fh) / 2 + K.rnd(-6, 6);
+    p.el.style.left = Math.max(-m, Math.min(W - fw + m, x)) + 'px'; p.el.style.top = Math.max(top - m, Math.min(H - fh + m, y)) + 'px';
   }
 }
 addEventListener('resize', layout);
 
 function drop(p) {
-  const L = LEVELS[level], pw = bw / L.c, ph = bh / L.r;
+  const L = LEVELS[level], pw = bw / L.c, ph = bh / L.r, m = Math.min(pw, ph) * 0.34;
   const r = p.el.getBoundingClientRect();
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   const sx = bx + (p.c + 0.5) * pw, sy = by + (p.r + 0.5) * ph;
   if (Math.hypot(cx - sx, cy - sy) > Math.max(pw, ph) * 0.45) {
-    // u blizini ploče a krivo mjesto: lagani "ne"
     if (cx > bx && cx < bx + bw && cy > by && cy < by + bh) K.sfx('boing');
     return false;
   }
   p.ok = true; p.el.dataset.locked = 1;
   p.el.style.transition = 'none'; p.el.style.transform = '';
-  p.el.style.left = bx + p.c * pw + 'px'; p.el.style.top = by + p.r * ph + 'px';
+  p.el.style.left = bx + p.c * pw - m + 'px'; p.el.style.top = by + p.r * ph - m + 'px';
   p.el.classList.add('ok', 'flash'); K.sfx('snap');
   if (pieces.every((x) => x.ok)) {
-    board.classList.add('full');
-    setTimeout(() => { K.levelComplete('slagalica', level, LEVELS.length, start, menu, 'Slika je složena!'); }, 900);
+    board.classList.add('full'); peek.style.display = 'none';
+    setTimeout(() => { K.levelComplete('slagalica', level, LEVELS.length, start, menu, K.t('Slika je složena!', 'The picture is finished!')); }, 900);
   }
   return true;
 }

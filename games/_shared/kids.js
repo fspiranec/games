@@ -12,6 +12,19 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
 
+  /* ---------- jezik ---------- */
+  // Novi jezik: dodaj ga ovdje (voice = regex za glasove) i dodaj prijevod kao sljedeći argument u K.t(...)
+  K.LANGS = [
+    { code: 'hr', label: 'Hrvatski', short: 'HR', voice: [/^hr/i, /^(bs|sr-Latn|sh)/i] },
+    { code: 'en', label: 'English', short: 'EN', voice: [/^en-GB/i, /^en/i] },
+  ];
+  K.lang = K.store.get('kids-lang', 'hr');
+  if (!K.LANGS.some((l) => l.code === K.lang)) K.lang = 'hr';
+  const LI = K.LANGS.findIndex((l) => l.code === K.lang);
+  K.t = (...v) => (v[LI] != null ? v[LI] : v[0]);
+  K.setLang = (c) => { K.store.set('kids-lang', c); location.reload(); };
+  if (typeof document !== 'undefined') document.documentElement.lang = K.lang;
+
   /* ---------- zvuk ---------- */
   let ctx = null;
   K.muted = K.store.get('kids-muted', false);
@@ -64,12 +77,17 @@
     }
   };
 
-  /* ---------- govor (samo ako uređaj ima hrvatski glas) ---------- */
+  /* ---------- govor (samo ako uređaj ima glas za odabrani jezik) ---------- */
   function hrVoice() {
     if (!('speechSynthesis' in window)) return null;
     const vs = speechSynthesis.getVoices();
-    return vs.find((v) => /^hr/i.test(v.lang)) || vs.find((v) => /^(bs|sr-Latn|sh)/i.test(v.lang)) || null;
+    for (const re of K.LANGS[LI].voice) {
+      const m = vs.filter((v) => re.test(v.lang.replace('_', '-')));
+      if (m.length) return m.find((v) => /natural|google|siri|premium|enhanced/i.test(v.name)) || m[0];
+    }
+    return null;
   }
+  K.hasVoice = () => !!hrVoice();
   if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }
   K.say = function (text) {
     if (K.muted) return;
@@ -220,7 +238,7 @@
     },
   };
   K.DINO_KINDS = ['rex', 'longneck', 'trike', 'stego', 'ptero', 'ankylo'];
-  K.DINO_NAMES = { rex: 'T-rex', longneck: 'Brontosaur', trike: 'Triceratops', stego: 'Stegosaur', ptero: 'Pterodaktil', ankylo: 'Ankilosaur' };
+  K.DINO_NAMES = { rex: 'T-rex', longneck: K.t('Brontosaur', 'Brontosaurus'), trike: 'Triceratops', stego: K.t('Stegosaur', 'Stegosaurus'), ptero: K.t('Pterodaktil', 'Pterodactyl'), ankylo: K.t('Ankilosaur', 'Ankylosaurus') };
   K.COLORS = { green: '#6cc04a', blue: '#4aa3df', orange: '#ff9a3c', purple: '#a77bdb', pink: '#ff7eb6', yellow: '#ffd23f', red: '#ff5a4e', teal: '#2ec4b6' };
   K.dinoInner = (kind, color) => DINO[kind](color);
   K.dino = (kind, color) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${DINO[kind](color)}</svg>`;
@@ -241,18 +259,18 @@
     party: `<path d="M38 32 L50 4 L62 32Z" fill="#ff7eb6"/><path d="M42 24 L58 24 M46 15 L55 15" stroke="#ffd23f" stroke-width="3"/><circle cx="50" cy="5" r="4" fill="#4aa3df"/>`,
   };
   K.PUPS = [
-    { role: 'fire', fur: '#d9a066', vest: '#e63946', name: 'Vatrogasac' },
-    { role: 'police', fur: '#6b4a2f', vest: '#2457a6', name: 'Policajac' },
-    { role: 'doctor', fur: '#f1e3c8', vest: '#ffffff', name: 'Doktor' },
-    { role: 'pilot', fur: '#a8a8a8', vest: '#8a5a33', name: 'Pilot' },
-    { role: 'chef', fur: '#f5c26b', vest: '#ffffff', name: 'Kuhar' },
-    { role: 'sailor', fur: '#e0c9a6', vest: '#2457a6', name: 'Mornar' },
-    { role: 'builder', fur: '#c47a3a', vest: '#ff9a3c', name: 'Graditelj' },
-    { role: 'farmer', fur: '#8d6e63', vest: '#6cc04a', name: 'Farmer' },
-    { role: 'painter', fur: '#f7f2e8', vest: '#a33ea1', name: 'Slikar' },
-    { role: 'king', fur: '#e8b04a', vest: '#e63946', name: 'Kralj' },
-    { role: 'magic', fur: '#555555', vest: '#a77bdb', name: 'Čarobnjak' },
-    { role: 'party', fur: '#ffb38a', vest: '#2ec4b6', name: 'Slavljenik' },
+    { role: 'fire', fur: '#d9a066', vest: '#e63946', name: K.t('Vatrogasac', 'Firefighter') },
+    { role: 'police', fur: '#6b4a2f', vest: '#2457a6', name: K.t('Policajac', 'Police officer') },
+    { role: 'doctor', fur: '#f1e3c8', vest: '#ffffff', name: K.t('Doktor', 'Doctor') },
+    { role: 'pilot', fur: '#a8a8a8', vest: '#8a5a33', name: K.t('Pilot', 'Pilot') },
+    { role: 'chef', fur: '#f5c26b', vest: '#ffffff', name: K.t('Kuhar', 'Chef') },
+    { role: 'sailor', fur: '#e0c9a6', vest: '#2457a6', name: K.t('Mornar', 'Sailor') },
+    { role: 'builder', fur: '#c47a3a', vest: '#ff9a3c', name: K.t('Graditelj', 'Builder') },
+    { role: 'farmer', fur: '#8d6e63', vest: '#6cc04a', name: K.t('Farmer', 'Farmer') },
+    { role: 'painter', fur: '#f7f2e8', vest: '#a33ea1', name: K.t('Slikar', 'Painter') },
+    { role: 'king', fur: '#e8b04a', vest: '#e63946', name: K.t('Kralj', 'King') },
+    { role: 'magic', fur: '#555555', vest: '#a77bdb', name: K.t('Čarobnjak', 'Magician') },
+    { role: 'party', fur: '#ffb38a', vest: '#2ec4b6', name: K.t('Slavljenik', 'Party pup') },
   ];
   K.pup = function (p) {
     const d = K.dark(p.fur, 0.3), l = K.light(p.fur, 0.55);
@@ -271,12 +289,12 @@
 
   /* emoji životinje s hrvatskim imenima */
   K.ANIMALS = [
-    { e: '🐘', n: 'slon' }, { e: '🦒', n: 'žirafa' }, { e: '🐄', n: 'krava' }, { e: '🐖', n: 'svinja' },
-    { e: '🐑', n: 'ovca' }, { e: '🐔', n: 'kokoš' }, { e: '🐴', n: 'konj' }, { e: '🦆', n: 'patka' },
-    { e: '🐇', n: 'zec' }, { e: '🐢', n: 'kornjača' }, { e: '🐬', n: 'dupin' }, { e: '🐙', n: 'hobotnica' },
-    { e: '🦀', n: 'rak' }, { e: '🐌', n: 'puž' }, { e: '🦋', n: 'leptir' }, { e: '🐝', n: 'pčela' },
-    { e: '🐈', n: 'mačka' }, { e: '🐕', n: 'pas' }, { e: '🦁', n: 'lav' }, { e: '🐻', n: 'medvjed' },
-    { e: '🐸', n: 'žaba' }, { e: '🐧', n: 'pingvin' }, { e: '🦉', n: 'sova' }, { e: '🐿️', n: 'vjeverica' },
+    { e: '🐘', n: K.t('slon', 'elephant') }, { e: '🦒', n: K.t('žirafa', 'giraffe') }, { e: '🐄', n: K.t('krava', 'cow') }, { e: '🐖', n: K.t('svinja', 'pig') },
+    { e: '🐑', n: K.t('ovca', 'sheep') }, { e: '🐔', n: K.t('kokoš', 'chicken') }, { e: '🐴', n: K.t('konj', 'horse') }, { e: '🦆', n: K.t('patka', 'duck') },
+    { e: '🐇', n: K.t('zec', 'rabbit') }, { e: '🐢', n: K.t('kornjača', 'turtle') }, { e: '🐬', n: K.t('dupin', 'dolphin') }, { e: '🐙', n: K.t('hobotnica', 'octopus') },
+    { e: '🦀', n: K.t('rak', 'crab') }, { e: '🐌', n: K.t('puž', 'snail') }, { e: '🦋', n: K.t('leptir', 'butterfly') }, { e: '🐝', n: K.t('pčela', 'bee') },
+    { e: '🐈', n: K.t('mačka', 'cat') }, { e: '🐕', n: K.t('pas', 'dog') }, { e: '🦁', n: K.t('lav', 'lion') }, { e: '🐻', n: K.t('medvjed', 'bear') },
+    { e: '🐸', n: K.t('žaba', 'frog') }, { e: '🐧', n: K.t('pingvin', 'penguin') }, { e: '🦉', n: K.t('sova', 'owl') }, { e: '🐿️', n: K.t('vjeverica', 'squirrel') },
   ];
 
   /* ---------- gornja traka: natrag + zvuk ---------- */
@@ -300,18 +318,32 @@
   .k-big:active{transform:scale(.95)}
   .k-stars{font-size:44px;margin:4px 0 14px;letter-spacing:4px}
   `;
+  let cssDone = false;
+  K.css = function () { if (cssDone) return; cssDone = true; const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); };
   K.bar = function (opts) {
     opts = opts || {};
-    const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    K.css();
     const bar = document.createElement('div'); bar.className = 'k-bar';
-    bar.innerHTML = `<div style="display:flex;gap:8px"><a class="k-btn" href="../../" aria-label="Natrag na igre">← Igre</a>${opts.levels ? '<button class="k-btn" id="k-lvbtn">Razine</button>' : ''}</div><button class="k-btn" id="k-mute" aria-label="Zvuk"></button>`;
+    bar.innerHTML = `<div style="display:flex;gap:8px"><a class="k-btn" href="../../" aria-label="${K.t('Natrag na igre', 'Back to games')}">← ${K.t('Igre', 'Games')}</a>${opts.levels ? `<button class="k-btn" id="k-lvbtn">${K.t('Razine', 'Levels')}</button>` : ''}</div><div style="display:flex;gap:8px"><button class="k-btn" id="k-lang" aria-label="${K.t('Jezik', 'Language')}">🗣️ ${K.LANGS[LI].short}</button><button class="k-btn" id="k-mute" aria-label="${K.t('Zvuk', 'Sound')}"></button></div>`;
     document.body.appendChild(bar);
     const mb = bar.querySelector('#k-mute');
     const upd = () => (mb.textContent = K.muted ? '🔇' : '🔊');
     upd();
     mb.onclick = () => { K.muted = !K.muted; K.store.set('kids-muted', K.muted); upd(); if (!K.muted) K.sfx('tap'); else if ('speechSynthesis' in window) speechSynthesis.cancel(); };
     if (opts.levels) bar.querySelector('#k-lvbtn').onclick = opts.levels;
+    bar.querySelector('#k-lang').onclick = K.langMenu;
     document.addEventListener('pointerdown', ac, { once: true });
+  };
+
+  K.langMenu = function () {
+    K.css(); K.sfx('tap');
+    const ov = document.createElement('div'); ov.className = 'k-ov k-langov';
+    const warn = K.hasVoice() ? '' : `<p style="font-size:14px">${K.t('Ovaj uređaj nema glas za odabrani jezik pa se riječi samo prikazuju.', 'This device has no voice for the chosen language, so words are only shown.')}</p>`;
+    ov.innerHTML = `<div class="k-card"><h2>🗣️ ${K.t('Jezik', 'Language')}</h2><p>${K.t('Na kojem jeziku da igra govori?', 'Which language should the game speak?')}</p>${warn}<div class="k-row">${K.LANGS.map((l) =>
+      `<button class="k-big ${l.code === K.lang ? '' : 'alt'}" data-c="${l.code}">${l.label}</button>`).join('')}</div></div>`;
+    ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+    ov.querySelectorAll('[data-c]').forEach((b) => (b.onclick = () => { if (b.dataset.c === K.lang) ov.remove(); else K.setLang(b.dataset.c); }));
+    document.body.appendChild(ov);
   };
 
   /* ---------- razine ---------- */
@@ -322,7 +354,7 @@
     K.closeOverlay();
     const done = K.store.get('lv-' + id, []);
     const ov = document.createElement('div'); ov.className = 'k-ov';
-    ov.innerHTML = `<div class="k-card"><h2>${title}</h2><p>Odaberi razinu</p>${extraHTML || ''}<div class="k-levels">${levels.map((l, i) =>
+    ov.innerHTML = `<div class="k-card"><h2>${title}</h2><p>${K.t('Odaberi razinu', 'Choose a level')}</p>${extraHTML || ''}<div class="k-levels">${levels.map((l, i) =>
       `<button class="k-lv ${done.includes(i) ? 'done' : ''}" data-i="${i}">${i + 1}<small>${l.name}</small><span class="st">${done.includes(i) ? '⭐' : ''}</span></button>`).join('')}</div></div>`;
     document.body.appendChild(ov);
     ov.querySelectorAll('.k-lv').forEach((b) => (b.onclick = () => { K.sfx('tap'); ov.remove(); onPick(+b.dataset.i); }));
@@ -330,12 +362,12 @@
   };
   K.levelComplete = function (id, i, count, onNext, onMenu, msg) {
     K.levelDone(id, i);
-    K.sfx('win'); K.confetti(); K.say('Bravo!');
+    K.sfx('win'); K.confetti(); K.say(K.t('Bravo!', 'Well done!'));
     K.closeOverlay();
     const last = i >= count - 1;
     const ov = document.createElement('div'); ov.className = 'k-ov';
-    ov.innerHTML = `<div class="k-card"><h2>Bravo!</h2><div class="k-stars">⭐⭐⭐</div><p>${msg || (last ? 'Prošao si sve razine!' : 'Razina ' + (i + 1) + ' je gotova.')}</p>
-      <div class="k-row">${last ? '' : '<button class="k-big" data-a="next">Sljedeća razina →</button>'}<button class="k-big ${last ? '' : 'alt'}" data-a="again">Opet</button><button class="k-big alt" data-a="menu">Razine</button></div></div>`;
+    ov.innerHTML = `<div class="k-card"><h2>${K.t('Bravo!', 'Well done!')}</h2><div class="k-stars">⭐⭐⭐</div><p>${msg || (last ? K.t('Prošao si sve razine!', 'You finished all the levels!') : K.t('Razina ' + (i + 1) + ' je gotova.', 'Level ' + (i + 1) + ' complete!'))}</p>
+      <div class="k-row">${last ? '' : `<button class="k-big" data-a="next">${K.t('Sljedeća razina', 'Next level')} →</button>`}<button class="k-big ${last ? '' : 'alt'}" data-a="again">${K.t('Opet', 'Again')}</button><button class="k-big alt" data-a="menu">${K.t('Razine', 'Levels')}</button></div></div>`;
     document.body.appendChild(ov);
     ov.querySelectorAll('button').forEach((b) => (b.onclick = () => {
       K.sfx('tap'); ov.remove();

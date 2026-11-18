@@ -36,23 +36,24 @@ body{margin:0;background:linear-gradient(180deg,#ffe8b8,#ffc9a8);color:#173b52;f
 <div id="tray"></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Pronađi sjenu', 'Find the shadow');
 const ANIMALS = K.ANIMALS.map((a) => ({ kind: 'em', e: a.e, n: a.n }));
 const DINOS = K.DINO_KINDS.map((k, i) => ({ kind: 'dino', k, c: Object.values(K.COLORS)[i], n: K.DINO_NAMES[k] }));
 const LEVELS = [
-  { name: '2 sjene', pool: 'a', n: 2 },
-  { name: '3 sjene', pool: 'a', n: 3 },
-  { name: '4 sjene', pool: 'a', n: 4 },
-  { name: 'Dinosauri', pool: 'd', n: 3 },
+  { name: K.t('2 sjene', '2 shadows'), pool: 'a', n: 2 },
+  { name: K.t('3 sjene', '3 shadows'), pool: 'a', n: 3 },
+  { name: K.t('4 sjene', '4 shadows'), pool: 'a', n: 4 },
+  { name: K.t('Dinosauri', 'Dinosaurs'), pool: 'd', n: 3 },
   { name: 'Dino · 4', pool: 'd', n: 4 },
-  { name: 'Obrnuto', pool: 'a', n: 3, rev: true },
-  { name: 'Sve · 4', pool: 'x', n: 4, rev: 'mix' },
+  { name: K.t('Obrnuto', 'Reverse'), pool: 'a', n: 3, rev: true },
+  { name: K.t('Sve · 4', 'Mix · 4'), pool: 'x', n: 4, rev: 'mix' },
 ];
 const ROUNDS = 6;
 let level = 0, done = 0, answer = null, busy = false;
 const target = document.getElementById('target'), tray = document.getElementById('tray');
 
 K.bar({ levels: menu });
-function menu() { K.levelMenu('sjene', 'Pronađi sjenu', LEVELS, start); }
+function menu() { K.levelMenu('sjene', K.t('Pronađi sjenu', 'Find the shadow'), LEVELS, start); }
 function itemHTML(it, shadow, size) {
   const inner = it.kind === 'em' ? `<span class="em" style="font-size:${size}">${it.e}</span>` : K.dino(it.k, it.c);
   return `<div class="it ${shadow ? 'sh' : ''}">${inner}</div>`;
@@ -73,8 +74,8 @@ function round() {
   // target: sjena (normalno) ili slika u boji (obrnuto)
   target.innerHTML = itemHTML(answer, !rev, 'min(28vh,54vw)');
   target.dataset.rev = rev ? 1 : '';
-  document.getElementById('hint').textContent = rev ? 'Koja je ovo sjena?' : 'Čija je ovo sjena?';
-  K.say(rev ? 'Pronađi sjenu!' : 'Čija je ovo sjena?');
+  document.getElementById('hint').textContent = rev ? K.t('Koja je ovo sjena?', 'Which shadow is it?') : K.t('Čija je ovo sjena?', 'Whose shadow is this?');
+  K.say(rev ? K.t('Pronađi sjenu!', 'Find the shadow!') : K.t('Čija je ovo sjena?', 'Whose shadow is this?'));
   tray.innerHTML = '';
   opts.forEach((o) => {
     const el = document.createElement('div');
@@ -105,7 +106,7 @@ function choose(el) {
     K.say(answer.n.charAt(0).toUpperCase() + answer.n.slice(1) + '!');
     done++; prog();
     setTimeout(() => {
-      if (done >= ROUNDS) K.levelComplete('sjene', level, LEVELS.length, start, menu, 'Sve sjene su pronađene!');
+      if (done >= ROUNDS) K.levelComplete('sjene', level, LEVELS.length, start, menu, K.t('Sve sjene su pronađene!', 'You found all the shadows!'));
       else round();
     }, 1300);
   }, 450);

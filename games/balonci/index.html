@@ -35,44 +35,45 @@ body{margin:0;background:linear-gradient(180deg,#7cc8f5,#d6f0ff);color:#173b52;f
 <div id="hud"><div id="task"></div></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Balončići', 'Balloons');
 const COLS = [
-  { c: '#ff4b3e', one: 'crveni', many: 'CRVENE' },
-  { c: '#4a90e2', one: 'plavi', many: 'PLAVE' },
-  { c: '#ffd23f', one: 'žuti', many: 'ŽUTE' },
-  { c: '#4caf50', one: 'zeleni', many: 'ZELENE' },
-  { c: '#ff9a3c', one: 'narančasti', many: 'NARANČASTE' },
-  { c: '#9c5bd1', one: 'ljubičasti', many: 'LJUBIČASTE' },
-  { c: '#ff7eb6', one: 'ružičasti', many: 'RUŽIČASTE' },
+  { c: '#ff4b3e', one: K.t('crveni', 'red'), many: K.t('CRVENE', 'RED') },
+  { c: '#4a90e2', one: K.t('plavi', 'blue'), many: K.t('PLAVE', 'BLUE') },
+  { c: '#ffd23f', one: K.t('žuti', 'yellow'), many: K.t('ŽUTE', 'YELLOW') },
+  { c: '#4caf50', one: K.t('zeleni', 'green'), many: K.t('ZELENE', 'GREEN') },
+  { c: '#ff9a3c', one: K.t('narančasti', 'orange'), many: K.t('NARANČASTE', 'ORANGE') },
+  { c: '#9c5bd1', one: K.t('ljubičasti', 'purple'), many: K.t('LJUBIČASTE', 'PURPLE') },
+  { c: '#ff7eb6', one: K.t('ružičasti', 'pink'), many: K.t('RUŽIČASTE', 'PINK') },
 ];
-const NUM = ['nula', 'jedan', 'dva', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam', 'devet', 'deset'];
+const NUM = K.t(['nula', 'jedan', 'dva', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam', 'devet', 'deset'], ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']);
 const LEVELS = [
-  { name: 'Slobodno', mode: 'free', goal: 10, speed: 55, size: 1.15, every: 1.1 },
-  { name: 'Brojimo do 10', mode: 'count', goal: 10, speed: 60, size: 1.1, every: 1.0 },
-  { name: 'Jedna boja', mode: 'color', goal: 8, speed: 60, size: 1.05, every: 0.9 },
-  { name: 'Redom 1–5', mode: 'order', goal: 5, speed: 45, size: 1.05, every: 1.1 },
-  { name: 'Brže!', mode: 'color', goal: 12, speed: 100, size: 0.85, every: 0.6 },
-  { name: 'Redom 1–10', mode: 'order', goal: 10, speed: 55, size: 0.95, every: 0.9 },
+  { name: K.t('Slobodno', 'Free play'), mode: 'free', goal: 10, speed: 55, size: 1.15, every: 1.1 },
+  { name: K.t('Brojimo do 10', 'Count to 10'), mode: 'count', goal: 10, speed: 60, size: 1.1, every: 1.0 },
+  { name: K.t('Jedna boja', 'One colour'), mode: 'color', goal: 8, speed: 60, size: 1.05, every: 0.9 },
+  { name: K.t('Redom 1–5', 'In order 1–5'), mode: 'order', goal: 5, speed: 45, size: 1.05, every: 1.1 },
+  { name: K.t('Brže!', 'Faster!'), mode: 'color', goal: 12, speed: 100, size: 0.85, every: 0.6 },
+  { name: K.t('Redom 1–10', 'In order 1–10'), mode: 'order', goal: 10, speed: 55, size: 0.95, every: 0.9 },
 ];
 let level = 0, L = LEVELS[0], balloons = [], count = 0, want = null, nextN = 1, spawnT = 0, running = false, last = 0;
 const task = document.getElementById('task');
 
 K.bar({ levels: menu });
-function menu() { running = false; clear(); K.levelMenu('baloni', 'Balončići', LEVELS, start); }
+function menu() { running = false; clear(); K.levelMenu('baloni', K.t('Balončići', 'Balloons'), LEVELS, start); }
 function clear() { balloons.forEach((b) => b.el.remove()); balloons = []; }
 
 function start(i) {
   level = i; L = LEVELS[i]; count = 0; nextN = 1; spawnT = 0; clear();
   want = L.mode === 'color' ? K.pick(COLS) : null;
   renderTask();
-  if (want) K.say('Pukni ' + want.many.toLowerCase() + ' balone!');
-  else if (L.mode === 'order') K.say('Pukni balone redom, od jedan!');
-  else K.say('Pukni balone!');
+  if (want) K.say(K.t('Pukni ', 'Pop the ') + want.many.toLowerCase() + K.t(' balone!', ' balloons!'));
+  else if (L.mode === 'order') K.say(K.t('Pukni balone redom, od jedan!', 'Pop the balloons in order, from one!'));
+  else K.say(K.t('Pukni balone!', 'Pop the balloons!'));
   running = true; last = performance.now(); requestAnimationFrame(loop);
 }
 function renderTask() {
-  if (L.mode === 'color') task.innerHTML = `Pukni <span class="dot" style="background:${want.c}"></span> ${want.many} <b>${count}/${L.goal}</b>`;
-  else if (L.mode === 'order') task.innerHTML = `Sljedeći broj: <b>${nextN <= L.goal ? nextN : '✓'}</b>`;
-  else task.innerHTML = `Baloni <b>${count}/${L.goal}</b>`;
+  if (L.mode === 'color') task.innerHTML = `${K.t('Pukni', 'Pop')} <span class="dot" style="background:${want.c}"></span> ${want.many} <b>${count}/${L.goal}</b>`;
+  else if (L.mode === 'order') task.innerHTML = `${K.t('Sljedeći broj', 'Next number')}: <b>${nextN <= L.goal ? nextN : '✓'}</b>`;
+  else task.innerHTML = `${K.t('Baloni', 'Balloons')} <b>${count}/${L.goal}</b>`;
 }
 
 function balloonSVG(c, n) {
@@ -127,7 +128,7 @@ function hit(b) {
   renderTask();
   if (count >= L.goal) {
     running = false;
-    setTimeout(() => { clear(); K.levelComplete('baloni', level, LEVELS.length, start, menu, 'Svi baloni su pukli!'); }, 700);
+    setTimeout(() => { clear(); K.levelComplete('baloni', level, LEVELS.length, start, menu, K.t('Svi baloni su pukli!', 'All the balloons popped!')); }, 700);
   }
 }
 function bounce(b) { K.sfx('boing'); b.el.classList.remove('bounce'); void b.el.offsetWidth; b.el.classList.add('bounce'); }

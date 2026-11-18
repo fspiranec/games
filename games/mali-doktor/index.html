@@ -70,6 +70,7 @@ body.blood #bed{display:none}
 <div id="tray"></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Mali doktor', 'Little doctor');
 /* ---------- crteži klica ---------- */
 const eyes = (x1, x2, y) => `<circle cx="${x1}" cy="${y}" r="7" fill="#fff"/><circle cx="${x2}" cy="${y}" r="7" fill="#fff"/><circle cx="${x1 + 1.5}" cy="${y + 1}" r="3.6" fill="#222"/><circle cx="${x2 + 1.5}" cy="${y + 1}" r="3.6" fill="#222"/>`;
 function bacteriaSVG(c) {
@@ -102,12 +103,12 @@ function heroSVG() {
 
 /* ---------- razine ---------- */
 const LEVELS = [
-  { name: 'Klice', steps: ['zap'], germs: 5, patients: 3 },
-  { name: 'Bakterija ili virus?', steps: ['zap2'], germs: 6, patients: 3 },
-  { name: 'Povećalo', steps: ['find', 'zap'], germs: 5, patients: 3 },
-  { name: 'Pregled', steps: ['thermo', 'find', 'zap2', 'plaster'], germs: 5, patients: 3 },
-  { name: 'U krvi', blood: true, germs: 8, patients: 2 },
-  { name: 'Brze klice', steps: ['zap2'], germs: 5, patients: 3, move: true, multiply: true },
+  { name: K.t('Klice', 'Germs'), steps: ['zap'], germs: 5, patients: 3 },
+  { name: K.t('Bakterija ili virus?', 'Bacteria or virus?'), steps: ['zap2'], germs: 6, patients: 3 },
+  { name: K.t('Povećalo', 'Magnifier'), steps: ['find', 'zap'], germs: 5, patients: 3 },
+  { name: K.t('Pregled', 'Check-up'), steps: ['thermo', 'find', 'zap2', 'plaster'], germs: 5, patients: 3 },
+  { name: K.t('U krvi', 'In the blood'), blood: true, germs: 8, patients: 2 },
+  { name: K.t('Brze klice', 'Fast germs'), steps: ['zap2'], germs: 5, patients: 3, move: true, multiply: true },
 ];
 let level = 0, L = LEVELS[0], patientNo = 0, germs = [], tool = null, step = null, running = false, box = null, last = 0, splitT = 0, cells = [], explainedRbc = false;
 const stage = document.getElementById('stage'), patientEl = document.getElementById('patient'), moodEl = document.getElementById('mood'),
@@ -115,7 +116,7 @@ const stage = document.getElementById('stage'), patientEl = document.getElementB
   owie = document.getElementById('owie'), thermo = document.getElementById('thermo'), hero = document.getElementById('hero'), bed = document.getElementById('bed');
 
 K.bar({ levels: menu });
-function menu() { stop(); K.levelMenu('doktor', 'Mali doktor', LEVELS, start); }
+function menu() { stop(); K.levelMenu('doktor', K.t('Mali doktor', 'Little doctor'), LEVELS, start); }
 function stop() { running = false; germs.forEach((g) => g.el.remove()); germs = []; cells.forEach((c) => c.el.remove()); cells = []; tray.innerHTML = ''; lens.style.display = 'none'; }
 function setHint(t, say) { hint.textContent = t; if (say !== false) K.say(say || t); }
 function prog() { document.getElementById('prog').textContent = '🤒'.repeat(L.patients - patientNo) + '😄'.repeat(patientNo); }
@@ -144,7 +145,7 @@ async function nextPatient() {
   step = null; splitT = 5; patientEl.className = 'sick'; moodEl.textContent = '🤒';
   owie.className = ''; owie.style.display = 'none'; thermo.style.display = 'none';
   layoutPatient();
-  K.say(K.pick(['Doktore, nije mi dobro!', 'Doktore, boli me!', 'Pomoć, doktore!']));
+  K.say(K.pick([K.t('Doktore, nije mi dobro!', "Doctor, I don't feel well!"), K.t('Doktore, boli me!', 'Doctor, it hurts!'), K.t('Pomoć, doktore!', 'Help, doctor!')]));
   await K.wait(900);
   spawnGerms(L.germs, L.steps.includes('find'));
   for (const s of L.steps) { if (!running) return; await STEPS[s](); }
@@ -214,14 +215,14 @@ const STEPS = {
   async thermo() {
     step = 'thermo';
     tray.innerHTML = '';
-    const b = toolBtn('🌡️', 'Toplomjer');
-    setHint('Izmjeri temperaturu!');
+    const b = toolBtn('🌡️', K.t('Toplomjer', 'Thermometer'));
+    setHint(K.t('Izmjeri temperaturu!', 'Take the temperature!'));
     dragTool(b, '🌡️', () => patientEl.getBoundingClientRect(), async () => {
       if (!resolveStep) return;
       K.sfx('peek');
       Object.assign(thermo.style, { display: 'block', left: box.x + box.s * 0.05 + 'px', top: box.y + box.s * 0.1 + 'px' });
       thermo.textContent = '🌡️ 38°';
-      setHint('Ima temperaturu! Imaš posla.', 'Ima temperaturu!');
+      setHint(K.t('Ima temperaturu! Imaš posla.', 'A fever! Time to help.'), K.t('Ima temperaturu!', 'A fever!'));
       await K.wait(1600); thermo.style.display = 'none'; done();
     });
     await waitStep();
@@ -229,8 +230,8 @@ const STEPS = {
   async find() {
     step = 'find';
     tray.innerHTML = '';
-    toolBtn('🔍', 'Povećalo').classList.add('sel');
-    setHint('Potraži klice povećalom!');
+    toolBtn('🔍', K.t('Povećalo', 'Magnifier')).classList.add('sel');
+    setHint(K.t('Potraži klice povećalom!', 'Look for germs with the magnifier!'));
     lens.style.display = 'block';
     lens.style.left = innerWidth / 2 + 'px'; lens.style.top = box.y + box.s * 0.5 + 'px';
     const move = (e) => {
@@ -238,7 +239,7 @@ const STEPS = {
       const lx = e.clientX, ly = e.clientY - 40;
       for (const g of germs) if (!g.found && Math.hypot(g.x - lx, g.y - ly) < 70) {
         g.found = true; g.el.classList.remove('hidden'); g.el.classList.add('found'); K.sfx('peek');
-        K.say(g.type === 'b' ? 'Bakterija!' : 'Virus!');
+        K.say(g.type === 'b' ? K.t('Bakterija!', 'Bacteria!') : 'Virus!');
       }
       if (germs.every((g) => g.found) && resolveStep) { removeEventListener('pointermove', move); setTimeout(() => { lens.style.display = 'none'; done(); }, 600); }
     };
@@ -248,15 +249,15 @@ const STEPS = {
   async zap() {
     step = 'zap';
     tray.innerHTML = ''; tool = 'hand';
-    setHint('Dodirni klice da nestanu!');
+    setHint(K.t('Dodirni klice da nestanu!', 'Tap the germs to make them go away!'));
     await waitStep();
   },
   async zap2() {
     step = 'zap';
     tray.innerHTML = ''; tool = null;
-    toolBtn(`${bacteriaSVG('#7ccf4a')}`, 'Za bakterije', '#4caf50', () => { tool = 'b'; K.say('Sprej za bakterije!'); });
-    toolBtn(`${virusSVG('#a77bdb')}`, 'Za viruse', '#9c5bd1', () => { tool = 'v'; K.say('Sprej za viruse!'); });
-    setHint('Odaberi sprej pa dodirni klice!');
+    toolBtn(`${bacteriaSVG('#7ccf4a')}`, K.t('Za bakterije', 'For bacteria'), '#4caf50', () => { tool = 'b'; K.say(K.t('Sprej za bakterije!', 'Bacteria spray!')); });
+    toolBtn(`${virusSVG('#a77bdb')}`, K.t('Za viruse', 'For viruses'), '#9c5bd1', () => { tool = 'v'; K.say(K.t('Sprej za viruse!', 'Virus spray!')); });
+    setHint(K.t('Odaberi sprej pa dodirni klice!', 'Pick a spray, then tap the germs!'));
     await waitStep();
   },
   async plaster() {
@@ -264,11 +265,11 @@ const STEPS = {
     tray.innerHTML = '';
     Object.assign(owie.style, { display: 'block', left: box.x + box.s * 0.44 + 'px', top: box.y + box.s * 0.6 + 'px', width: box.s * 0.12 + 'px', height: box.s * 0.12 + 'px' });
     owie.querySelector('.pl').innerHTML = `<span style="font-size:${box.s * 0.14}px;line-height:1">🩹</span>`;
-    const b = toolBtn('🩹', 'Flaster');
-    setHint('Zalijepi flaster na ranicu!');
+    const b = toolBtn('🩹', K.t('Flaster', 'Plaster'));
+    setHint(K.t('Zalijepi flaster na ranicu!', 'Put a plaster on the sore spot!'));
     dragTool(b, '🩹', () => { const r = owie.getBoundingClientRect(); return { left: r.left - 40, right: r.right + 40, top: r.top - 40, bottom: r.bottom + 40 }; }, () => {
       if (!resolveStep) return;
-      owie.classList.add('done'); K.sfx('snap'); K.say('Tako. Sad je bolje!'); setTimeout(done, 900);
+      owie.classList.add('done'); K.sfx('snap'); K.say(K.t('Tako. Sad je bolje!', 'There. All better!')); setTimeout(done, 900);
     });
     await waitStep();
   },
@@ -278,10 +279,10 @@ function hitGerm(g) {
   if (!running || g.dead || !g.found) return;
   if (L.blood) return heroEat(g);
   if (step !== 'zap') return;
-  if (!tool) { K.sfx('boing'); setHint('Prvo odaberi sprej!'); return; }
+  if (!tool) { K.sfx('boing'); setHint(K.t('Prvo odaberi sprej!', 'Pick a spray first!')); return; }
   if (tool !== 'hand' && tool !== g.type) {
     K.sfx('boing'); g.el.classList.remove('giggle'); void g.el.offsetWidth; g.el.classList.add('giggle');
-    setHint(g.type === 'b' ? 'To je bakterija! Uzmi zeleni sprej.' : 'To je virus! Uzmi ljubičasti sprej.');
+    setHint(g.type === 'b' ? K.t('To je bakterija! Uzmi zeleni sprej.', "That's bacteria! Use the green spray.") : K.t('To je virus! Uzmi ljubičasti sprej.', "That's a virus! Use the purple spray."));
     return;
   }
   kill(g, tool === 'v' ? '#c9a7ff' : tool === 'b' ? '#bff08f' : '#ffffff');
@@ -305,13 +306,13 @@ function burst(x, y, color) {
 async function healed() {
   tray.innerHTML = ''; tool = null;
   patientEl.className = 'happy'; moodEl.textContent = '😄'; moodEl.classList.remove('pop'); void moodEl.offsetWidth; moodEl.classList.add('pop');
-  Object.assign(thermo.style, { display: 'block', left: box.x + box.s * 0.05 + 'px', top: box.y + box.s * 0.1 + 'px' }); thermo.textContent = L.steps.includes('thermo') ? '🌡️ 36,6°' : '⭐';
-  K.sfx('good'); K.say('Hvala, doktore!'); setHint('Hvala, doktore!', false);
+  Object.assign(thermo.style, { display: 'block', left: box.x + box.s * 0.05 + 'px', top: box.y + box.s * 0.1 + 'px' }); thermo.textContent = L.steps.includes('thermo') ? K.t('🌡️ 36,6°', '🌡️ 36.6°') : '⭐';
+  K.sfx('good'); K.say(K.t('Hvala, doktore!', 'Thank you, doctor!')); setHint(K.t('Hvala, doktore!', 'Thank you, doctor!'), false);
   patientNo++; prog();
   await K.wait(2200);
   if (!running) return;
   thermo.style.display = 'none';
-  if (patientNo >= L.patients) { running = false; K.levelComplete('doktor', level, LEVELS.length, start, menu, 'Svi pacijenti su zdravi!'); }
+  if (patientNo >= L.patients) { running = false; K.levelComplete('doktor', level, LEVELS.length, start, menu, K.t('Svi pacijenti su zdravi!', 'All the patients are healthy!')); }
   else nextPatient();
 }
 
@@ -351,7 +352,7 @@ function bloodRound() {
   Object.assign(hero.style, { width: hs + 'px', height: hs + 'px', left: innerWidth / 2 - hs / 2 + 'px', top: innerHeight - hs - 30 + 'px' });
   for (let i = 0; i < 9; i++) addCell(K.rnd(0, innerWidth));
   for (let i = 0; i < 4; i++) addFloatingGerm(K.rnd(0, innerWidth * 0.8));
-  setHint('Dodirni klice! Bijela stanica ih pojede.', 'Ovo je tvoja krv. Dodirni klice, a bijela krvna stanica će ih pojesti!');
+  setHint(K.t('Dodirni klice! Bijela stanica ih pojede.', 'Tap the germs! The white cell eats them.'), K.t('Ovo je tvoja krv. Dodirni klice, a bijela krvna stanica će ih pojesti!', 'This is your blood. Tap the germs and the white blood cell will eat them!'));
 }
 function addCell(x) {
   const el = document.createElement('div'); el.className = 'rbc'; el.innerHTML = rbcSVG();
@@ -360,7 +361,7 @@ function addCell(x) {
   el.style.width = s + 'px'; el.style.height = s * 0.85 + 'px';
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault(); K.sfx('boing');
-    if (!explainedRbc) { explainedRbc = true; setHint('To je crvena krvna stanica. Ona je dobra!'); }
+    if (!explainedRbc) { explainedRbc = true; setHint(K.t('To je crvena krvna stanica. Ona je dobra!', "That's a red blood cell. It's a good one!")); }
   });
   stage.appendChild(el); cells.push(c);
 }
@@ -405,11 +406,11 @@ async function heroEat(g) {
 }
 async function bloodDone() {
   running = false;
-  K.sfx('good'); K.say('Bravo! Krv je čista!'); setHint('Bravo! Krv je čista!', false);
+  K.sfx('good'); K.say(K.t('Bravo! Krv je čista!', 'Well done! The blood is clean!')); setHint(K.t('Bravo! Krv je čista!', 'Well done! The blood is clean!'), false);
   patientNo++;
   await K.wait(1800);
   germs.forEach((g) => g.el.remove()); germs = []; cells.forEach((c) => c.el.remove()); cells = [];
-  if (patientNo >= L.patients) K.levelComplete('doktor', level, LEVELS.length, start, menu, 'Pobijedio si sve klice!');
+  if (patientNo >= L.patients) K.levelComplete('doktor', level, LEVELS.length, start, menu, K.t('Pobijedio si sve klice!', 'You beat all the germs!'));
   else { running = true; bloodRound(); }
 }
 menu();

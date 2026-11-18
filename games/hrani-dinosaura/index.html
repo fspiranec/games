@@ -40,30 +40,31 @@ body{margin:0;background:linear-gradient(180deg,#bfe9ff 0 55%,#9bd770 55% 100%);
 <div id="tray"></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Hrani dinosaura', 'Feed the dino');
 const COLORS = [
-  { k: 'red', name: 'CRVENO', c: '#ff4b3e', foods: ['🍎', '🍓', '🍒', '🍅'] },
-  { k: 'yellow', name: 'ŽUTO', c: '#ffd23f', foods: ['🍌', '🧀', '🍋', '🌽'] },
-  { k: 'green', name: 'ZELENO', c: '#4caf50', foods: ['🥦', '🥒', '🍐', '🥝'] },
-  { k: 'orange', name: 'NARANČASTO', c: '#ff9a3c', foods: ['🍊', '🥕'] },
-  { k: 'purple', name: 'LJUBIČASTO', c: '#9c5bd1', foods: ['🍇', '🍆'] },
-  { k: 'brown', name: 'SMEĐE', c: '#8b5a2b', foods: ['🍪', '🥔', '🍫'] },
+  { k: 'red', name: K.t('CRVENO', 'RED'), c: '#ff4b3e', foods: ['🍎', '🍓', '🍒', '🍅'] },
+  { k: 'yellow', name: K.t('ŽUTO', 'YELLOW'), c: '#ffd23f', foods: ['🍌', '🧀', '🍋', '🌽'] },
+  { k: 'green', name: K.t('ZELENO', 'GREEN'), c: '#4caf50', foods: ['🥦', '🥒', '🍐', '🥝'] },
+  { k: 'orange', name: K.t('NARANČASTO', 'ORANGE'), c: '#ff9a3c', foods: ['🍊', '🥕'] },
+  { k: 'purple', name: K.t('LJUBIČASTO', 'PURPLE'), c: '#9c5bd1', foods: ['🍇', '🍆'] },
+  { k: 'brown', name: K.t('SMEĐE', 'BROWN'), c: '#8b5a2b', foods: ['🍪', '🥔', '🍫'] },
 ];
 const SHAPES = [
-  { k: 'krug', name: 'KRUG', svg: '<circle cx="50" cy="50" r="40"/>' },
-  { k: 'kvadrat', name: 'KVADRAT', svg: '<rect x="12" y="12" width="76" height="76" rx="8"/>' },
-  { k: 'trokut', name: 'TROKUT', say: 'trokut', svg: '<path d="M50 9 L93 86 L7 86Z"/>' },
-  { k: 'zvijezda', name: 'ZVIJEZDU', svg: '<path d="M50 6 L61 37 L94 38 L68 58 L77 90 L50 71 L23 90 L32 58 L6 38 L39 37Z"/>' },
-  { k: 'srce', name: 'SRCE', svg: '<path d="M50 88 C10 60 4 30 27 17 C40 10 50 20 50 30 C50 20 60 10 73 17 C96 30 90 60 50 88Z"/>' },
+  { k: 'krug', name: K.t('KRUG', 'CIRCLE'), svg: '<circle cx="50" cy="50" r="40"/>' },
+  { k: 'kvadrat', name: K.t('KVADRAT', 'SQUARE'), svg: '<rect x="12" y="12" width="76" height="76" rx="8"/>' },
+  { k: 'trokut', name: K.t('TROKUT', 'TRIANGLE'), say: 'trokut', svg: '<path d="M50 9 L93 86 L7 86Z"/>' },
+  { k: 'zvijezda', name: K.t('ZVIJEZDU', 'STAR'), svg: '<path d="M50 6 L61 37 L94 38 L68 58 L77 90 L50 71 L23 90 L32 58 L6 38 L39 37Z"/>' },
+  { k: 'srce', name: K.t('SRCE', 'HEART'), svg: '<path d="M50 88 C10 60 4 30 27 17 C40 10 50 20 50 30 C50 20 60 10 73 17 C96 30 90 60 50 88Z"/>' },
 ];
 const CK = ['#ff4b3e', '#ffd23f', '#4aa3df', '#4caf50', '#ff9a3c', '#9c5bd1', '#ff7eb6'];
 const LEVELS = [
-  { name: 'Boje · 2', type: 'color', n: 2 },
-  { name: 'Boje · 3', type: 'color', n: 3 },
-  { name: 'Boje · 4', type: 'color', n: 4 },
-  { name: 'Oblici · 2', type: 'shape', n: 2 },
-  { name: 'Oblici · 3', type: 'shape', n: 3 },
-  { name: 'Oblici · 4', type: 'shape', n: 4 },
-  { name: 'Sve · 4', type: 'mix', n: 4 },
+  { name: K.t('Boje', 'Colours') + ' · 2', type: 'color', n: 2 },
+  { name: K.t('Boje', 'Colours') + ' · 3', type: 'color', n: 3 },
+  { name: K.t('Boje', 'Colours') + ' · 4', type: 'color', n: 4 },
+  { name: K.t('Oblici', 'Shapes') + ' · 2', type: 'shape', n: 2 },
+  { name: K.t('Oblici', 'Shapes') + ' · 3', type: 'shape', n: 3 },
+  { name: K.t('Oblici', 'Shapes') + ' · 4', type: 'shape', n: 4 },
+  { name: K.t('Sve', 'Mix') + ' · 4', type: 'mix', n: 4 },
 ];
 const GOAL = 5;
 let level = 0, fed = 0, target = null, busy = false;
@@ -71,7 +72,7 @@ const dinoEl = document.getElementById('dino'), tray = document.getElementById('
 const DINO_COLORS = [K.COLORS.green, K.COLORS.purple, K.COLORS.blue, K.COLORS.teal, K.COLORS.orange, K.COLORS.pink, K.COLORS.green];
 
 K.bar({ levels: menu });
-function menu() { K.levelMenu('hrani', 'Hrani dinosaura', LEVELS, start); }
+function menu() { K.levelMenu('hrani', K.t('Hrani dinosaura', 'Feed the dino'), LEVELS, start); }
 
 function shapeSVG(s, fill, stroke) {
   return `<svg viewBox="0 0 100 100"><g fill="${fill}" stroke="${stroke || K.dark(fill === 'none' ? '#888888' : fill, 0.25)}" stroke-width="5" stroke-linejoin="round" ${fill === 'none' ? 'stroke-dasharray="9 7"' : ''}>${s.svg}</g></svg>`;
@@ -100,11 +101,11 @@ function round() {
   if (type === 'color') {
     want.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="${target.data.c}" stroke="#fff" stroke-width="6"/></svg>`;
     word.textContent = target.data.name;
-    K.say('Daj mi nešto ' + target.data.name.toLowerCase() + '!');
+    K.say(K.t('Daj mi nešto ', 'Give me something ') + target.data.name.toLowerCase() + '!');
   } else {
     want.innerHTML = shapeSVG(target.data, 'none', '#7a8a96');
     word.textContent = target.data.name;
-    K.say('Daj mi ' + target.data.name.toLowerCase() + '!');
+    K.say(K.t('Daj mi ', 'Give me a ') + target.data.name.toLowerCase() + '!');
   }
   tray.innerHTML = '';
   K.shuffle(opts).forEach((o) => {
@@ -122,7 +123,7 @@ function give(el) {
   if (busy) return false;
   if (el.dataset.key !== target.key) {
     K.sfx('bad'); dinoEl.classList.remove('no'); void dinoEl.offsetWidth; dinoEl.classList.add('no');
-    K.say('Ne to. Probaj opet!');
+    K.say(K.t('Ne to. Probaj opet!', 'Not that one. Try again!'));
     return false;
   }
   busy = true;
@@ -135,7 +136,7 @@ function give(el) {
     hearts(d); fed++; renderProg();
     setTimeout(() => {
       K.sfx('good');
-      if (fed >= GOAL) K.levelComplete('hrani', level, LEVELS.length, start, menu, 'Dino je sit i sretan!');
+      if (fed >= GOAL) K.levelComplete('hrani', level, LEVELS.length, start, menu, K.t('Dino je sit i sretan!', 'The dino is full and happy!'));
       else round();
     }, 900);
   }, 450);

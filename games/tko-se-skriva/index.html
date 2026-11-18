@@ -33,6 +33,7 @@ body{margin:0;background:linear-gradient(180deg,#a8e0ff 0 35%,#8fd16a 35% 100%);
 <div id="prog"></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Tko se skriva?', 'Who is hiding?');
 const COVERS = [
   (s) => `<svg viewBox="0 0 100 100"><circle cx="28" cy="66" r="24" fill="${s}"/><circle cx="52" cy="54" r="30" fill="${K.light(s, .12)}"/><circle cx="74" cy="68" r="22" fill="${s}"/><rect x="6" y="66" width="88" height="26" rx="13" fill="${K.dark(s, .1)}"/><circle cx="44" cy="46" r="4" fill="#ff5a7a"/><circle cx="66" cy="60" r="4" fill="#ffd23f"/></svg>`,
   () => `<svg viewBox="0 0 100 100"><path d="M8 92 Q4 56 30 44 Q50 30 72 42 Q96 54 92 92Z" fill="#9aa5ad"/><path d="M30 52 Q46 44 60 50" stroke="#c4ccd2" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`,
@@ -40,19 +41,19 @@ const COVERS = [
   () => `<svg viewBox="0 0 100 100"><path d="M10 94 Q14 48 50 40 Q86 48 90 94Z" fill="#f2c94c"/><path d="M24 60 l6 -6 M40 54 l4 -8 M60 52 l-3 -8 M74 62 l-6 -6 M30 78 l6 -6 M66 80 l-5 -7" stroke="#d4a72c" stroke-width="3" stroke-linecap="round"/></svg>`,
 ];
 const LEVELS = [
-  { name: '3 skrovišta', n: 3, c: 3 },
-  { name: '4 skrovišta', n: 4, c: 2 },
-  { name: '6 skrovišta', n: 6, c: 3 },
-  { name: 'Zapamti · 4', n: 4, c: 2, memo: true },
-  { name: '8 skrovišta', n: 8, c: 4 },
-  { name: 'Zapamti · 6', n: 6, c: 3, memo: true },
+  { name: K.t('3 skrovišta', '3 hiding spots'), n: 3, c: 3 },
+  { name: K.t('4 skrovišta', '4 hiding spots'), n: 4, c: 2 },
+  { name: K.t('6 skrovišta', '6 hiding spots'), n: 6, c: 3 },
+  { name: K.t('Zapamti · 4', 'Remember · 4'), n: 4, c: 2, memo: true },
+  { name: K.t('8 skrovišta', '8 hiding spots'), n: 8, c: 4 },
+  { name: K.t('Zapamti · 6', 'Remember · 6'), n: 6, c: 3, memo: true },
 ];
 const ROUNDS = 5;
 let level = 0, done = 0, target = null, busy = true, spots = [];
 const field = document.getElementById('field'), ask = document.getElementById('ask');
 
 K.bar({ levels: menu });
-function menu() { K.levelMenu('skriva', 'Tko se skriva?', LEVELS, start); }
+function menu() { K.levelMenu('skriva', K.t('Tko se skriva?', 'Who is hiding?'), LEVELS, start); }
 function start(i) { level = i; done = 0; prog(); round(); }
 function prog() { document.getElementById('prog').textContent = '⭐'.repeat(done) + '⚪'.repeat(ROUNDS - done); }
 
@@ -81,11 +82,11 @@ async function round() {
     el.onclick = () => tap(el, a);
     field.appendChild(el); spots.push({ el, a });
   });
-  ask.innerHTML = `Gdje je <span class="em">${target.e}</span>?`;
+  ask.innerHTML = `${K.t('Gdje je', 'Where is the')} <span class="em">${target.e}</span>?`;
   if (L.memo) {
     ask.style.visibility = 'hidden';
-    document.getElementById('memo').textContent = 'Zapamti!';
-    K.say('Zapamti!');
+    document.getElementById('memo').textContent = K.t('Zapamti!', 'Remember!');
+    K.say(K.t('Zapamti!', 'Remember!'));
     spots.forEach((s) => s.el.classList.add('peek')); K.sfx('peek');
     await K.wait(2600);
     spots.forEach((s) => s.el.classList.remove('peek'));
@@ -93,7 +94,7 @@ async function round() {
     await K.wait(400);
     ask.style.visibility = '';
   }
-  K.say('Gdje je ' + target.n + '?');
+  K.say(K.t('Gdje je ', 'Where is the ') + target.n + '?');
   busy = false;
 }
 
@@ -104,15 +105,15 @@ async function tap(el, a) {
   if (a === target) {
     busy = true;
     el.classList.add('yes'); K.sfx('good');
-    K.say('Bravo! ' + a.n.charAt(0).toUpperCase() + a.n.slice(1) + '!');
+    K.say(K.t('Bravo! ', 'Well done! ') + a.n.charAt(0).toUpperCase() + a.n.slice(1) + '!');
     await K.wait(500);
     spots.forEach((s) => s.el.classList.add('peek'));
     done++; prog();
     await K.wait(1600);
-    if (done >= ROUNDS) K.levelComplete('skriva', level, LEVELS.length, start, menu, 'Sve životinje su pronađene!');
+    if (done >= ROUNDS) K.levelComplete('skriva', level, LEVELS.length, start, menu, K.t('Sve životinje su pronađene!', 'You found all the animals!'));
     else round();
   } else {
-    K.say('To je ' + a.n + '.');
+    K.say(K.t('To je ', "That's the ") + a.n + '.');
     await K.wait(1100);
     el.classList.remove('peek');
   }

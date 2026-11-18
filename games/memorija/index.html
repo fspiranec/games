@@ -45,6 +45,7 @@ body{margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var
 <div id="board"></div>
 <script src="../_shared/kids.js"></script>
 <script>
+document.title = K.t('Memorija', 'Memory');
 const LEVELS = [
   { name: '2 × 3', c: 3, r: 2 },
   { name: '3 × 4', c: 4, r: 3 },
@@ -58,15 +59,15 @@ const DINO_SET = [
   ['rex', COL.red], ['longneck', COL.teal], ['trike', COL.pink], ['stego', COL.green], ['ptero', COL.blue], ['ankylo', COL.orange],
 ];
 const THEMES = {
-  dino: { name: 'Dinosauri', icon: '🦕', items: DINO_SET.map(([k, c]) => ({ svg: K.dino(k, c), say: K.DINO_NAMES[k] })) },
-  pups: { name: 'Psići', icon: '🐶', items: K.PUPS.map((p) => ({ svg: K.pup(p), say: p.name })) },
-  farm: { name: 'Farma', icon: '🐄', items: ['🐄 krava', '🐖 svinja', '🐑 ovca', '🐔 kokoš', '🐴 konj', '🦆 patka', '🐐 koza', '🐇 zec', '🐕 pas', '🐈 mačka', '🦃 puran', '🐓 pijetao'].map(s) },
-  sea: { name: 'More', icon: '🐠', items: ['🐙 hobotnica', '🐠 riba', '🐬 dupin', '🐳 kit', '🦀 rak', '🐢 kornjača', '🦈 morski pas', '🐡 napuhača', '🦑 lignja', '🐚 školjka', '🦞 jastog', '🦭 tuljan'].map(s) },
-  cars: { name: 'Vozila', icon: '🚒', items: ['🚗 auto', '🚒 vatrogasci', '🚓 policija', '🚑 hitna', '🚜 traktor', '🚌 autobus', '🚂 vlak', '✈️ avion', '🚁 helikopter', '🚀 raketa', '🚲 bicikl', '⛵ brod'].map(s) },
+  dino: { name: K.t('Dinosauri', 'Dinosaurs'), icon: '🦕', items: DINO_SET.map(([k, c]) => ({ svg: K.dino(k, c), say: K.DINO_NAMES[k] })) },
+  pups: { name: K.t('Psići', 'Puppies'), icon: '🐶', items: K.PUPS.map((p) => ({ svg: K.pup(p), say: p.name })) },
+  farm: { name: K.t('Farma', 'Farm'), icon: '🐄', items: ['🐄 krava|cow', '🐖 svinja|pig', '🐑 ovca|sheep', '🐔 kokoš|chicken', '🐴 konj|horse', '🦆 patka|duck', '🐐 koza|goat', '🐇 zec|rabbit', '🐕 pas|dog', '🐈 mačka|cat', '🦃 puran|turkey', '🐓 pijetao|rooster'].map(s) },
+  sea: { name: K.t('More', 'Sea'), icon: '🐠', items: ['🐙 hobotnica|octopus', '🐠 riba|fish', '🐬 dupin|dolphin', '🐳 kit|whale', '🦀 rak|crab', '🐢 kornjača|turtle', '🦈 morski pas|shark', '🐡 napuhača|pufferfish', '🦑 lignja|squid', '🐚 školjka|shell', '🦞 jastog|lobster', '🦭 tuljan|seal'].map(s) },
+  cars: { name: K.t('Vozila', 'Vehicles'), icon: '🚒', items: ['🚗 auto|car', '🚒 vatrogasci|fire engine', '🚓 policija|police car', '🚑 hitna|ambulance', '🚜 traktor|tractor', '🚌 autobus|bus', '🚂 vlak|train', '✈️ avion|plane', '🚁 helikopter|helicopter', '🚀 raketa|rocket', '🚲 bicikl|bike', '⛵ brod|boat'].map(s) },
 };
-function s(str) { const [e, ...n] = str.split(' '); return { em: e, say: n.join(' ') }; }
-const MODES = { solo: { name: 'Sam', icon: '🙂' }, two: { name: '2 igrača', icon: '👫' }, bot: { name: 'Protiv dina', icon: '🦖' } };
-const BOTS = { easy: { name: 'Pospani dino', icon: '😴', p: 0.25 }, hard: { name: 'Pametni dino', icon: '🤓', p: 0.85 } };
+function s(str) { const [e, ...n] = str.split(' '); const [hr, en] = n.join(' ').split('|'); return { em: e, say: K.t(hr, en) }; }
+const MODES = { solo: { name: K.t('Sam', 'Solo'), icon: '🙂' }, two: { name: K.t('2 igrača', '2 players'), icon: '👫' }, bot: { name: K.t('Protiv dina', 'Vs dino'), icon: '🦖' } };
+const BOTS = { easy: { name: K.t('Pospani dino', 'Sleepy dino'), icon: '😴', p: 0.25 }, hard: { name: K.t('Pametni dino', 'Smart dino'), icon: '🤓', p: 0.85 } };
 
 let cfg = K.store.get('mem-cfg', { theme: 'dino', mode: 'solo', bot: 'easy', n1: 'Jan', n2: 'Lovro' });
 let level = 0, cards = [], open = [], busy = false, turn = 0, scores = [0, 0], tries = 0, seen = new Map(), players = [];
@@ -78,11 +79,11 @@ function optRow(key, map) {
   return `<div class="opt" data-k="${key}">${Object.entries(map).map(([k, v]) => `<button data-v="${k}" class="${cfg[key] === k ? 'sel' : ''}"><span class="ic">${v.icon}</span>${v.name}</button>`).join('')}</div>`;
 }
 function menu() {
-  const extra = `<div class="lbl">Slike</div>${optRow('theme', THEMES)}<div class="lbl">Tko igra</div>${optRow('mode', MODES)}
+  const extra = `<div class="lbl">${K.t('Slike', 'Pictures')}</div>${optRow('theme', THEMES)}<div class="lbl">${K.t('Tko igra', 'Who plays')}</div>${optRow('mode', MODES)}
     <div id="botRow" ${cfg.mode === 'bot' ? '' : 'hidden'}>${optRow('bot', BOTS)}</div>
     <div class="names" id="nameRow" ${cfg.mode === 'solo' ? 'hidden' : ''}><input id="n1" value="${cfg.n1}" maxlength="12" aria-label="Ime 1"><input id="n2" value="${cfg.n2}" maxlength="12" aria-label="Ime 2" ${cfg.mode === 'two' ? '' : 'hidden'}></div>
-    <div class="lbl">Razina</div>`;
-  const ov = K.levelMenu('memorija', 'Memorija', LEVELS, (i) => { saveNames(); start(i); }, extra);
+    <div class="lbl">${K.t('Razina', 'Level')}</div>`;
+  const ov = K.levelMenu('memorija', K.t('Memorija', 'Memory'), LEVELS, (i) => { saveNames(); start(i); }, extra);
   ov.querySelectorAll('.opt').forEach((row) => row.querySelectorAll('button').forEach((b) => (b.onclick = () => {
     K.sfx('tap'); cfg[row.dataset.k] = b.dataset.v;
     row.querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b));
@@ -91,7 +92,7 @@ function menu() {
     ov.querySelector('#n2').hidden = cfg.mode !== 'two';
     K.store.set('mem-cfg', cfg);
   })));
-  function saveNames() { cfg.n1 = ov.querySelector('#n1').value.trim() || 'Igrač 1'; cfg.n2 = ov.querySelector('#n2').value.trim() || 'Igrač 2'; K.store.set('mem-cfg', cfg); }
+  function saveNames() { cfg.n1 = ov.querySelector('#n1').value.trim() || K.t('Igrač 1', 'Player 1'); cfg.n2 = ov.querySelector('#n2').value.trim() || K.t('Igrač 2', 'Player 2'); K.store.set('mem-cfg', cfg); }
 }
 
 function start(i) {
@@ -100,7 +101,7 @@ function start(i) {
   const items = K.shuffle(THEMES[cfg.theme].items).slice(0, pairs);
   const deck = K.shuffle(items.flatMap((it, id) => [{ id, it }, { id, it }]));
   cards = []; open = []; busy = false; turn = 0; scores = [0, 0]; tries = 0; seen = new Map();
-  players = cfg.mode === 'solo' ? [{ name: cfg.n1 || 'Ti', color: 'var(--p1)', icon: '🙂' }]
+  players = cfg.mode === 'solo' ? [{ name: cfg.n1 || K.t('Ti', 'You'), color: 'var(--p1)', icon: '🙂' }]
     : cfg.mode === 'two' ? [{ name: cfg.n1, color: 'var(--p1)', icon: '1' }, { name: cfg.n2, color: 'var(--p2)', icon: '2' }]
     : [{ name: cfg.n1, color: 'var(--p1)', icon: '🙂' }, { name: BOTS[cfg.bot].name, color: 'var(--bot)', icon: '🦖', bot: true }];
   board.innerHTML = '';
@@ -133,7 +134,7 @@ addEventListener('resize', layout);
 
 function renderScore() {
   scoreEl.innerHTML = players.map((p, i) => `<div class="pl ${players.length > 1 && i === turn ? 'on' : ''}" style="color:${p.color}"><span class="av" style="background:${p.color}">${p.icon}</span><span style="color:var(--ink)">${p.name}</span><b>${scores[i]}</b></div>`).join('')
-    + (players.length === 1 ? `<div class="pl" style="color:var(--ink)">Pokušaji <b>${tries}</b></div>` : '');
+    + (players.length === 1 ? `<div class="pl" style="color:var(--ink)">${K.t('Pokušaji', 'Tries')} <b>${tries}</b></div>` : '');
 }
 
 function remember(c) {
@@ -190,9 +191,9 @@ async function flipBot(c) { busy = false; await flip(c); }
 
 function finish() {
   let msg;
-  if (players.length === 1) msg = `Sve parove si našao u ${tries} pokušaja!`;
-  else if (scores[0] === scores[1]) msg = 'Neriješeno! Oboje ste super!';
-  else { const w = scores[0] > scores[1] ? 0 : 1; msg = `Pobjednik je ${players[w].name}!`; }
+  if (players.length === 1) msg = K.t(`Sve parove si našao u ${tries} pokušaja!`, `You found all the pairs in ${tries} tries!`);
+  else if (scores[0] === scores[1]) msg = K.t('Neriješeno! Oboje ste super!', "It's a tie! You are both great!");
+  else { const w = scores[0] > scores[1] ? 0 : 1; msg = K.t(`Pobjednik je ${players[w].name}!`, `${players[w].name} wins!`); }
   setTimeout(() => K.levelComplete('memorija', level, LEVELS.length, start, menu, msg), 500);
 }
 

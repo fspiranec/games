@@ -27,30 +27,40 @@ main{max-width:1100px;margin:0 auto;padding:8px 16px 64px;display:grid;grid-temp
 .game div{padding:14px 18px 18px}
 .game h2{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05;margin:0}
 .game p{margin:6px 0 0;color:var(--mute);font-size:15px;line-height:1.4}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lang{border:0;border-radius:999px;padding:10px 18px;background:rgba(255,255,255,.94);color:#173b52;font:800 17px var(--body);cursor:pointer}
 .group{grid-column:1/-1;margin:24px 0 0;font-family:var(--display);font-weight:800;font-size:28px;color:var(--title)}
 </style>
 </head>
 <body>
 <header>
-  <h1>Moje <span>igre</span></h1>
-  <p>Odaberi igru i zaigraj.</p>
+  <div class="top"><h1 id="h1"></h1><button id="lang" class="lang"></button></div>
+  <p id="sub"></p>
 </header>
 <main id="list"></main>
+<script src="games/_shared/kids.js"></script>
 <script>
-/* Dodaj novu igru: stavi je u games/<ime>/index.html, sliku u games/<ime>/thumb.(svg|png|jpg) i dodaj red ovdje. */
+/* Dodaj novu igru: stavi je u games/<ime>/index.html, sliku u games/<ime>/thumb.(svg|png|jpg) i dodaj red ovdje.
+   Tekst piši kao K.t('hrvatski', 'English'). */
 const t = (slug) => `games/${slug}/thumb.svg`;
+document.title = K.t('Igre', 'Games');
+document.getElementById('h1').innerHTML = K.t('Moje <span>igre</span>', 'My <span>games</span>');
+document.getElementById('sub').textContent = K.t('Odaberi igru i zaigraj.', 'Pick a game and play.');
+const lb = document.getElementById('lang');
+lb.textContent = '🗣️ ' + K.LANGS.find((l) => l.code === K.lang).label;
+lb.onclick = K.langMenu;
 const GAMES = [
-  { name: 'Bijeg od kita', desc: 'Plivaj kroz more i izbjegni velika usta kita.', path: 'games/bijeg-od-kita/', thumb: t('bijeg-od-kita') },
-  { group: 'Za najmlađe (2–4 godine)' },
-  { name: 'Mali doktor', desc: 'Pregledaj pacijente, nađi bakterije i viruse povećalom i otjeraj ih. Pa u krv s bijelom krvnom stanicom!', path: 'games/mali-doktor/', thumb: t('mali-doktor') },
-  { name: 'Memorija', desc: 'Pronađi parove: dinosauri, psići, farma, more i vozila. Igraj sam, u dvoje ili protiv dina.', path: 'games/memorija/', thumb: t('memorija') },
-  { name: 'Hrani dinosaura', desc: 'Dino je gladan! Daj mu hranu prave boje ili oblika.', path: 'games/hrani-dinosaura/', thumb: t('hrani-dinosaura') },
-  { name: 'Pronađi sjenu', desc: 'Čija je ovo sjena? Spoji životinju s njezinom sjenom.', path: 'games/pronadi-sjenu/', thumb: t('pronadi-sjenu') },
-  { name: 'Balončići', desc: 'Pucaj balone, broji do deset i traži boje.', path: 'games/balonci/', thumb: t('balonci') },
-  { name: 'Tko se skriva?', desc: 'Pronađi životinju skrivenu iza grma, kamena ili kutije.', path: 'games/tko-se-skriva/', thumb: t('tko-se-skriva') },
-  { name: 'Izlegni jaje', desc: 'Kucaj po jajetu dok se ne izlegne mali dinosaur.', path: 'games/izlegni-jaje/', thumb: t('izlegni-jaje') },
-  { name: 'Slagalica', desc: 'Složi sliku od 2 do 16 dijelova.', path: 'games/slagalica/', thumb: t('slagalica') },
-  { name: 'Bojanka', desc: 'Odaberi boju i dodirni dio slike.', path: 'games/bojanka/', thumb: t('bojanka') },
+  { name: 'Bijeg od kita', desc: K.t('Plivaj kroz more i izbjegni velika usta kita.', 'Swim through the sea and escape the whale. (Croatian only)'), path: 'games/bijeg-od-kita/', thumb: t('bijeg-od-kita') },
+  { group: K.t('Za najmlađe (2–4 godine)', 'For little ones (ages 2–4)') },
+  { name: K.t('Mali doktor', 'Little doctor'), desc: K.t('Pregledaj pacijente, nađi bakterije i viruse povećalom i otjeraj ih. Pa u krv s bijelom krvnom stanicom!', 'Examine patients, find bacteria and viruses with a magnifier and chase them away. Then dive into the blood with a white blood cell!'), path: 'games/mali-doktor/', thumb: t('mali-doktor') },
+  { name: K.t('Memorija', 'Memory'), desc: K.t('Pronađi parove: dinosauri, psići, farma, more i vozila. Igraj sam, u dvoje ili protiv dina.', 'Find the pairs: dinosaurs, puppies, farm, sea and vehicles. Play alone, with a friend or against the dino.'), path: 'games/memorija/', thumb: t('memorija') },
+  { name: K.t('Hrani dinosaura', 'Feed the dino'), desc: K.t('Dino je gladan! Daj mu hranu prave boje ili oblika.', 'The dino is hungry! Give it food of the right colour or shape.'), path: 'games/hrani-dinosaura/', thumb: t('hrani-dinosaura') },
+  { name: K.t('Pronađi sjenu', 'Find the shadow'), desc: K.t('Čija je ovo sjena? Spoji životinju s njezinom sjenom.', 'Whose shadow is this? Match each animal to its shadow.'), path: 'games/pronadi-sjenu/', thumb: t('pronadi-sjenu') },
+  { name: K.t('Balončići', 'Balloons'), desc: K.t('Pucaj balone, broji do deset i traži boje.', 'Pop balloons, count to ten and find colours.'), path: 'games/balonci/', thumb: t('balonci') },
+  { name: K.t('Tko se skriva?', 'Who is hiding?'), desc: K.t('Pronađi životinju skrivenu iza grma, kamena ili kutije.', 'Find the animal hiding behind a bush, rock or box.'), path: 'games/tko-se-skriva/', thumb: t('tko-se-skriva') },
+  { name: K.t('Izlegni jaje', 'Hatch the egg'), desc: K.t('Kucaj po jajetu dok se ne izlegne mali dinosaur.', 'Tap the egg until a baby dinosaur hatches.'), path: 'games/izlegni-jaje/', thumb: t('izlegni-jaje') },
+  { name: K.t('Slagalica', 'Puzzle'), desc: K.t('Složi sliku od 2 do 16 dijelova.', 'Put together a picture from 2 to 16 pieces.'), path: 'games/slagalica/', thumb: t('slagalica') },
+  { name: K.t('Bojanka', 'Colouring'), desc: K.t('Odaberi boju i dodirni dio slike.', 'Pick a colour and tap part of the picture.'), path: 'games/bojanka/', thumb: t('bojanka') },
 ];
 
 const list = document.getElementById('list');
