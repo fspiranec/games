@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jan i T-Rex: Lava</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff4e0; --fg:#3b1d0e; --muted:#8c5a3c; --btn:#ffffff; --btnfg:#3b1d0e; --border:#f0c896; --accent:#ff6a1a;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c0f08; --fg:#ffe9d2; --muted:#c79a78; --btn:#2e1a10; --btnfg:#ffe9d2; --border:#5a3420; --accent:#ff8a3d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c0f08; --fg:#ffe9d2; --muted:#c79a78; --btn:#2e1a10; --btnfg:#ffe9d2; --border:#5a3420; --accent:#ff8a3d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:"Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  display:flex; flex-direction:column; align-items:center; gap:.75rem;
+  padding:1rem; padding-top:calc(env(safe-area-inset-top,0px) + 68px); -webkit-user-select:none; user-select:none;
+}
+h1{margin:0;font-size:clamp(1.5rem,4vw,2.25rem);font-weight:800;line-height:1.1;text-align:center}
+.wrap{width:100%;max-width:960px}
+canvas{
+  display:block;width:100%;height:auto;aspect-ratio:16/9;
+  border-radius:18px;border:3px solid var(--border);
+  touch-action:none;background:#2a1030;
+}
+.help{color:var(--muted);font-size:1rem;text-align:center;margin:0;max-width:60ch}
+.pad{display:none;width:100%;max-width:960px;gap:.75rem;justify-content:space-between}
+.pad button{
+  flex:1;font:inherit;font-size:1.6rem;font-weight:800;padding:.9rem 0;
+  border-radius:16px;border:3px solid var(--border);background:var(--btn);color:var(--btnfg);
+  touch-action:none;
+}
+.pad button.jump{flex:1.6;background:var(--accent);color:#fff;border-color:var(--accent)}
+.pad button:active{transform:translateY(2px)}
+@media (pointer:coarse){ .pad{display:flex} .keys{display:none} }
+</style>
+</head>
+<body>
+  <h1>Jan i T‑Rex: Lava</h1>
+  <div class="wrap"><canvas id="c" width="800" height="450" aria-label="Igra: Jan jaše T‑Rexa"></canvas></div>
+  <div class="pad">
+    <button id="bl" aria-label="Lijevo">◀</button>
+    <button id="bj" class="jump" aria-label="Skoči">Skoči</button>
+    <button id="br" aria-label="Desno">▶</button>
+  </div>
+  <p class="help keys" id="help"></p>
+
+<script src="../_shared/kids.js"></script>
+<script>
+(() => {
+document.title = K.t('Jan i T-Rex: Lava', 'Jan and T-Rex: Lava');
+document.querySelector('h1').textContent = K.t('Jan i T‑Rex: Lava', 'Jan and T‑Rex: Lava');
+document.getElementById('help').textContent = K.t('Razmak ili ↑ za skok preko lave · ← i → za pomicanje · pazi na meteore!', 'Space or ↑ to jump over lava · ← and → to move · watch out for meteors!');
+document.getElementById('bj').textContent = K.t('Skoči', 'Jump');
+// razine: brzina, širina lave, meteori i cilj (bodovi); zadnja je beskonačna
+const LEVELS = [
+  { name: K.t('Mala lava', 'Little lava'), base: 4, max: 6, pit: [60, 95], gap: [380, 720], met: 0, goal: 150 },
+  { name: K.t('Brže', 'Faster'), base: 5, max: 8, pit: [70, 120], gap: [340, 680], met: 0, goal: 250 },
+  { name: K.t('Meteori', 'Meteors'), base: 5, max: 8, pit: [70, 120], gap: [360, 700], met: 260, goal: 300 },
+  { name: K.t('Vulkan', 'Volcano'), base: 6, max: 10, pit: [80, 140], gap: [320, 640], met: 170, goal: 400 },
+  { name: K.t('Beskonačno', 'Endless'), base: 5, max: 12, pit: [70, 150], gap: [320, 700], met: 200, goal: 0 },
+];
+let level = 0, L = LEVELS[0], lives = 3, invul = 0;
+function menu() { state = 'menu'; K.levelMenu('jan-lava', K.t('Jan i T‑Rex', 'Jan and T‑Rex'), LEVELS, startLevel); }
+function startLevel(i) { level = i; L = LEVELS[i]; reset(); state = 'play'; }
+K.bar({ levels: menu });
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = 800, H = 450, GY = 372;
+function fit(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+fit(); addEventListener('resize', fit);
+
+const FONT = '"Baloo 2", "Trebuchet MS", system-ui, sans-serif';
+let state = 'menu', overAt = 0, reason = '';
+let score, best = 0, speed, t, dist, pits, meteors, parts, nextPit, nextMet, shake, lastBest;
+const p = { x:150, y:GY, vy:0, ground:true };
+const keys = { l:false, r:false };
+
+try { best = +localStorage.getItem('janTrexLavaBest') || 0; } catch(e) {}
+
+function reset(){
+  speed = L.base; t = 0; dist = 0; score = 0; lives = 3; invul = 0;
+  pits = []; meteors = []; parts = [];
+  nextPit = 500; nextMet = L.met || 0; shake = 0;
+  p.x = 150; p.y = GY; p.vy = 0; p.ground = true;
+}
+reset();
+
+function jump(){
+  if (document.querySelector('.k-ov')) return;
+  if (state !== 'play') {
+    if (state !== 'over' || performance.now() - overAt < 600) return;
+    reset(); state = 'play'; return;
+  }
+  if (p.ground) { p.vy = -13.5; p.ground = false; puff(p.x, GY, '#c9a27a', 8); K.sfx('boing'); }
+}
+
+addEventListener('keydown', e => {
+  const k = e.key;
+  if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { e.preventDefault(); if (!e.repeat || state==='play') jump(); }
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { e.preventDefault(); keys.l = true; }
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') { e.preventDefault(); keys.r = true; }
+});
+addEventListener('keyup', e => {
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.l = false;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.r = false;
+});
+cv.addEventListener('pointerdown', e => { e.preventDefault(); jump(); });
+function hold(id, key){
+  const b = document.getElementById(id);
+  const on = e => { e.preventDefault(); keys[key] = true; if (state !== 'play') jump(); };
+  const off = e => { e.preventDefault(); keys[key] = false; };
+  b.addEventListener('pointerdown', on);
+  ['pointerup','pointerleave','pointercancel'].forEach(ev => b.addEventListener(ev, off));
+}
+hold('bl','l'); hold('br','r');
+document.getElementById('bj').addEventListener('pointerdown', e => { e.preventDefault(); jump(); });
+
+const rnd = (a,b) => a + Math.random()*(b-a);
+
+function puff(x, y, color, n){
+  for (let i=0;i<n;i++) parts.push({x, y, vx:rnd(-2,2), vy:rnd(-3,-0.5), life:rnd(20,40), max:40, r:rnd(2,5), color});
+}
+function boom(x, y, n){
+  for (let i=0;i<n;i++){
+    const a = rnd(Math.PI, Math.PI*2), s = rnd(1.5,6);
+    parts.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:rnd(25,50), max:50, r:rnd(2,6),
+      color: ['#ffdd55','#ff8a1a','#ff4a1a','#7a4a3a'][i%4]});
+  }
+}
+
+// udarac: dok ima srca, T-Rex odskoči i kratko treperi; zadnje srce završava igru
+function hurt(why){
+  if (invul > 0) return;
+  if (lives > 1) {
+    lives--; invul = 100; shake = 8;
+    boom(p.x+10, GY-20, 18); K.sfx('bad');
+    pits = pits.filter(k => !(p.x + 4 > k.x - 10 && p.x + 4 < k.x + k.w + 10));
+    p.y = GY; p.vy = -12; p.ground = false;
+    return;
+  }
+  lose(why);
+}
+function lose(why){
+  state = 'over'; reason = why; overAt = performance.now(); shake = 14; lives = 0;
+  boom(p.x+10, p.y-50, 40); K.sfx('roar');
+  lastBest = score > best;
+  if (lastBest) { best = Math.floor(score); try { localStorage.setItem('janTrexLavaBest', best); } catch(e) {} }
+}
+function spawnMeteor(){
+  const tx = Math.max(70, Math.min(W - 70, p.x + rnd(-30, 160)));
+  const T = rnd(75, 105), x = tx + rnd(120, 260), y = -40;
+  meteors.push({ x, y, tx, vx:(tx - x)/T, vy:(GY - y)/T, r:rnd(14, 20), spin:0 });
+  K.sfx('whoosh');
+}
+
+function update(dt){
+  // particles always
+  for (const q of parts){ q.x += q.vx*dt; q.y += q.vy*dt; q.vy += 0.15*dt; q.life -= dt; }
+  parts = parts.filter(q => q.life > 0);
+  if (shake > 0) shake = Math.max(0, shake - dt);
+  if (state !== 'play') return;
+
+  t += dt;
+  if (invul > 0) invul -= dt;
+  speed = Math.min(L.max, L.base + t/700);
+  dist += speed*dt;
+  score += speed*dt/12;
+
+  // move
+  p.x += ((keys.r?1:0) - (keys.l?1:0)) * 6 * dt;
+  p.x = Math.max(60, Math.min(W-110, p.x));
+
+  // pits
+  for (const k of pits) k.x -= speed*dt;
+  pits = pits.filter(k => k.x + k.w > -20);
+  nextPit -= speed*dt;
+  if (nextPit <= 0){
+    const w = rnd(L.pit[0], Math.min(L.pit[1], L.pit[0] + 30 + t/40));
+    pits.push({ x: W + 20, w });
+    nextPit = w + rnd(L.gap[0], L.gap[1]);
+  }
+
+  // meteori: sjena na tlu pokazuje gdje će pasti, treba se maknuti lijevo ili desno
+  if (L.met) {
+    nextMet -= dt;
+    if (nextMet <= 0) { spawnMeteor(); nextMet = rnd(L.met * 0.7, L.met * 1.3); }
+  }
+  for (const m of meteors) {
+    m.x += m.vx*dt; m.y += m.vy*dt; m.spin += 0.12*dt;
+    if (m.y >= GY - 6) {
+      m.dead = true; boom(m.tx, GY, 22); shake = Math.max(shake, 6); K.sfx('pop');
+      if (Math.abs(p.x + 5 - m.tx) < 40 && p.y > GY - 55) hurt(K.t('Au, meteor!', 'Ouch, a meteor!'));
+    }
+  }
+  meteors = meteors.filter(m => !m.dead);
+  if (state !== 'play') return;
+
+  // cilj razine
+  if (L.goal && score >= L.goal) {
+    state = 'win';
+    K.levelComplete('jan-lava', level, LEVELS.length, startLevel, menu, K.t('Jan i T-Rex su prešli lavu!', 'Jan and T-Rex crossed the lava!'));
+    return;
+  }
+
+  // jump physics
+  p.vy += 0.6*dt; p.y += p.vy*dt;
+  const foot = p.x + 4;
+  const over = pits.some(k => foot > k.x + 14 && foot < k.x + k.w - 14);
+  if (p.y >= GY){
+    if (over && invul <= 0) { p.y = GY; hurt(K.t('Ups, Jan je pao u lavu!', 'Oops, Jan fell into the lava!')); return; }
+    if (!p.ground) puff(p.x, GY, '#c9a27a', 6);
+    p.y = GY; p.vy = 0; p.ground = true;
+  } else if (p.ground && over) {
+    p.ground = false; // walked onto lava
+  }
+
+}
+
+// ---------- drawing ----------
+function sky(){
+  const g = ctx.createLinearGradient(0,0,0,GY);
+  g.addColorStop(0,'#2a1040'); g.addColorStop(0.55,'#7a2a4a'); g.addColorStop(1,'#ff8a3d');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,GY);
+  // stars
+  ctx.fillStyle = 'rgba(255,240,220,.6)';
+  for (let i=0;i<30;i++){ const x = (i*137 - dist*0.03) % W; ctx.fillRect((x+W)%W, (i*53)%150, 2, 2); }
+  // far volcanoes
+  layer(0.12, '#4a1e3a', 140, 520, true);
+  layer(0.3, '#5e2632', 95, 380, false);
+}
+function layer(f, color, h, gap, smoke){
+  const off = (dist*f) % gap;
+  for (let x = -off - gap; x < W + gap; x += gap){
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, GY); ctx.lineTo(x + gap*0.38, GY - h); ctx.lineTo(x + gap*0.5, GY - h);
+    ctx.lineTo(x + gap*0.88, GY); ctx.closePath(); ctx.fill();
+    if (smoke){
+      ctx.fillStyle = 'rgba(255,120,40,.55)';
+      ctx.fillRect(x + gap*0.38, GY - h, gap*0.12, 6);
+      ctx.fillStyle = 'rgba(60,30,50,.45)';
+      for (let i=0;i<3;i++){
+        const yy = GY - h - 18 - i*22 - ((t*0.4 + i*20) % 22);
+        ctx.beginPath(); ctx.arc(x + gap*0.44 + i*10, yy, 12 + i*5, 0, 7); ctx.fill();
+      }
+    }
+  }
+}
+function ground(){
+  ctx.fillStyle = '#6b3b22'; ctx.fillRect(0, GY, W, H-GY);
+  ctx.fillStyle = '#8a5030'; ctx.fillRect(0, GY, W, 8);
+  ctx.fillStyle = '#542c18';
+  const off = dist % 60;
+  for (let x = -off; x < W; x += 60){ ctx.fillRect(x+10, GY+24, 14, 6); ctx.fillRect(x+38, GY+50, 10, 5); }
+  for (const k of pits){
+    const g = ctx.createLinearGradient(0, GY, 0, H);
+    g.addColorStop(0,'#ffdd55'); g.addColorStop(0.35,'#ff7a1a'); g.addColorStop(1,'#c2240e');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(k.x, GY); ctx.lineTo(k.x + k.w, GY); ctx.lineTo(k.x + k.w - 8, H); ctx.lineTo(k.x + 8, H); ctx.closePath(); ctx.fill();
+    // bubbles
+    ctx.fillStyle = '#fff0a0';
+    for (let i=0;i<3;i++){
+      const bx = k.x + 15 + ((i*37 + t*0.7) % (k.w - 30));
+      const br = 3 + 2*Math.sin(t*0.15 + i*2);
+      ctx.beginPath(); ctx.arc(bx, GY + 6, Math.max(1, br), 0, 7); ctx.fill();
+    }
+    // glow
+    ctx.fillStyle = 'rgba(255,140,40,.25)';
+    ctx.beginPath(); ctx.ellipse(k.x + k.w/2, GY, k.w*0.7, 30, 0, Math.PI, 0); ctx.fill();
+  }
+}
+
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,y,w,h,r) : ctx.rect(x,y,w,h); ctx.fill(); }
+
+function dino(){
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  const run = state === 'play' && p.ground;
+  const ph = dist * 0.09;
+  const bob = run ? Math.abs(Math.sin(ph)) * 3 : 0;
+  ctx.translate(0, -bob);
+
+  const G = '#52b043', D = '#2f7a2a', L = '#b6e38c';
+  // shadow
+  ctx.save(); ctx.translate(0, bob); ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath(); ctx.ellipse(5, 2 + (GY - p.y)*0, 45 - Math.min(25,(GY-p.y)*0.15), 6, 0, 0, 7); ctx.fill(); ctx.restore();
+
+  // legs
+  const l1 = run ? Math.max(0, Math.sin(ph))*10 : (p.ground?0:6);
+  const l2 = run ? Math.max(0, -Math.sin(ph))*10 : (p.ground?0:2);
+  ctx.fillStyle = D;
+  rr(-20, -34, 14, 34 - l1, 5); rr(-24, -6 - l1, 22, 7, 3);
+  ctx.fillStyle = G;
+  rr(4, -34, 14, 34 - l2, 5); rr(2, -6 - l2, 24, 7, 3);
+
+  // tail
+  ctx.fillStyle = G;
+  const tw = Math.sin(t*0.2)*4;
+  ctx.beginPath(); ctx.moveTo(-22,-62); ctx.quadraticCurveTo(-60,-60,-88,-48+tw); ctx.lineTo(-22,-34); ctx.closePath(); ctx.fill();
+  // body
+  ctx.beginPath(); ctx.ellipse(0,-48,40,25,0,0,7); ctx.fill();
+  ctx.fillStyle = L; ctx.beginPath(); ctx.ellipse(10,-38,25,13,0,0,7); ctx.fill();
+  // back spikes
+  ctx.fillStyle = D;
+  for (let i=0;i<5;i++){ const sx = -50 + i*14; ctx.beginPath(); ctx.moveTo(sx,-60+i*-1.5); ctx.lineTo(sx+6,-70-i*1.5); ctx.lineTo(sx+12,-60-i*1.5); ctx.fill(); }
+  // neck + head
+  ctx.fillStyle = G;
+  rr(20,-80,20,36,8);
+  rr(22,-96,50,26,10);
+  rr(30,-74,40,10,4); // jaw
+  ctx.fillStyle = '#fff';
+  for (let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(36+i*7,-74); ctx.lineTo(39+i*7,-69); ctx.lineTo(42+i*7,-74); ctx.fill(); }
+  // eye
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(52,-87,6,0,7); ctx.fill();
+  ctx.fillStyle = '#1b1b1b'; ctx.beginPath(); ctx.arc(54,-87,3,0,7); ctx.fill();
+  ctx.fillStyle = D; ctx.fillRect(66,-91,3,3);
+  ctx.fillStyle = D; rr(44,-96,16,4,2); // brow
+  // tiny arm
+  ctx.strokeStyle = D; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(30,-46); ctx.lineTo(40,-40 + (run?Math.sin(ph)*2:0)); ctx.stroke();
+
+  // ---- Jan ----
+  // scarf flapping
+  ctx.fillStyle = '#ffd23a';
+  const fl = Math.sin(t*0.4)*5;
+  ctx.beginPath(); ctx.moveTo(-6,-98); ctx.lineTo(-30,-102+fl); ctx.lineTo(-28,-92+fl); ctx.lineTo(-6,-93); ctx.fill();
+  // leg (jeans)
+  ctx.fillStyle = '#2e5aa8'; rr(-4,-78,22,11,5); rr(10,-72,9,20,4);
+  ctx.fillStyle = '#222'; rr(9,-55,14,6,3);
+  // torso
+  ctx.fillStyle = '#e8402a'; rr(-12,-104,20,30,7);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px ' + FONT; ctx.textAlign='center'; ctx.fillText('J', -2, -84);
+  // arm holding neck
+  ctx.strokeStyle = '#f2c29b'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(2,-98); ctx.lineTo(22,-84); ctx.stroke();
+  // head
+  ctx.fillStyle = '#f2c29b'; ctx.beginPath(); ctx.arc(-1,-116,12,0,7); ctx.fill();
+  ctx.fillStyle = '#6b3a1a';
+  ctx.beginPath(); ctx.arc(-2,-119,12.5,Math.PI*1.02,Math.PI*1.95); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-14,-120); ctx.lineTo(-18,-114); ctx.lineTo(-8,-122); ctx.fill();
+  ctx.fillStyle = '#1b1b1b'; ctx.beginPath(); ctx.arc(5,-116,1.8,0,7); ctx.fill();
+  ctx.strokeStyle = '#9a4a2a'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(4,-111, 4, 0.1, Math.PI*0.8); ctx.stroke();
+  ctx.restore();
+}
+
+function meteorsDraw(){
+  for (const m of meteors){
+    // warning on ground
+    const k = Math.min(1, m.y / GY);
+    ctx.fillStyle = `rgba(255,60,30,${0.15 + k*0.45})`;
+    ctx.beginPath(); ctx.ellipse(m.tx, GY + 2, 10 + k*22, 4 + k*5, 0, 0, 7); ctx.fill();
+    // trail
+    const g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx*14, m.y - m.vy*14);
+    g.addColorStop(0,'rgba(255,200,80,.85)'); g.addColorStop(1,'rgba(255,80,30,0)');
+    ctx.strokeStyle = g; ctx.lineWidth = m.r*1.4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx*14, m.y - m.vy*14); ctx.stroke();
+    // rock
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.spin);
+    ctx.fillStyle = 'rgba(255,140,40,.35)'; ctx.beginPath(); ctx.arc(0,0,m.r+7,0,7); ctx.fill();
+    ctx.fillStyle = '#5a3a30'; ctx.beginPath();
+    for (let i=0;i<8;i++){ const a=i/8*Math.PI*2, r=m.r*(i%2?0.85:1); ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff9a3a'; ctx.beginPath(); ctx.arc(-m.r*0.3, m.r*0.2, m.r*0.25, 0, 7); ctx.fill();
+    ctx.fillStyle = '#3a2420'; ctx.beginPath(); ctx.arc(m.r*0.3, -m.r*0.3, m.r*0.2, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function partsDraw(){
+  for (const q of parts){
+    ctx.globalAlpha = Math.max(0, q.life/q.max);
+    ctx.fillStyle = q.color; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function text(s, x, y, size, color, align='center'){
+  ctx.font = `800 ${size}px ${FONT}`; ctx.textAlign = align; ctx.textBaseline='middle';
+  ctx.lineWidth = Math.max(3, size/7); ctx.strokeStyle = 'rgba(40,10,20,.85)'; ctx.lineJoin='round';
+  ctx.strokeText(s, x, y); ctx.fillStyle = color; ctx.fillText(s, x, y);
+}
+
+function hud(){
+  const pts = K.t('Bodovi', 'Points') + ': ' + Math.floor(score) + (L.goal ? ' / ' + L.goal : '');
+  text(pts, 20, 30, 24, '#fff', 'left');
+  text('❤️'.repeat(Math.max(0, lives)), 20, 64, 22, '#fff', 'left');
+  text(K.t('Rekord', 'Best') + ': ' + best, W-20, 30, 20, '#ffd23a', 'right');
+  if (L.goal) {
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(W/2 - 120, 18, 240, 14, 7);
+    ctx.fillStyle = '#ffd23a'; rr(W/2 - 120, 18, 240 * Math.min(1, score / L.goal), 14, 7);
+  }
+}
+
+function overlay(){
+  if (state === 'menu'){
+    ctx.fillStyle = 'rgba(20,5,20,.45)'; ctx.fillRect(0,0,W,H);
+    text(K.t('Jan i T‑Rex', 'Jan and T‑Rex'), W/2, 120, 56, '#ffd23a');
+    text(K.t('Preskači lavu i pazi na meteore!', 'Jump over the lava and dodge the meteors!'), W/2, 180, 24, '#fff');
+    text(K.t('Odaberi razinu', 'Choose a level'), W/2, 230, 22, '#ffe0c0');
+  } else if (state === 'over'){
+    ctx.fillStyle = 'rgba(20,5,20,.5)'; ctx.fillRect(0,0,W,H);
+    text(reason, W/2, 130, 36, '#ff8a3d');
+    text(K.t('Bodovi', 'Points') + ': ' + Math.floor(score), W/2, 190, 32, '#fff');
+    if (lastBest) text(K.t('Novi rekord! 🎉', 'New record! 🎉'), W/2, 235, 26, '#ffd23a');
+    if (performance.now() - overAt > 600){
+      const pulse = 0.6 + 0.4*Math.sin(performance.now()/250);
+      ctx.globalAlpha = pulse; text(K.t('Pritisni razmak ili dodirni za novu igru', 'Press space or tap to play again'), W/2, 300, 22, '#fff'); ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function draw(){
+  ctx.save();
+  if (shake > 0) ctx.translate(rnd(-shake,shake)*0.6, rnd(-shake,shake)*0.6);
+  sky(); ground(); meteorsDraw();
+  const blink = invul > 0 && Math.floor(invul / 6) % 2 === 0;
+  if (!(state === 'over' && reason.includes('meteor')) && !blink) dino();
+  partsDraw();
+  ctx.restore();
+  hud(); overlay();
+}
+
+let last = performance.now();
+function loop(now){
+  const dt = Math.min((now - last) / 16.667, 3);
+  last = now;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+menu();
+})();
+</script>
+</body>
+</html>
